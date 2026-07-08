@@ -60,9 +60,58 @@ practice against pnpm, and Renovate configured with a 14-day `minimumReleaseAge`
 updates. See the ADR for the two dead ends (`@cyclonedx/cyclonedx-npm`, `@cyclonedx/cdxgen`)
 and why each was reverted.
 
+## Ranked worklist (2026-07-08 review, easiest → hardest)
+
+From a post-scaffold review session with Ryan; work through in order:
+
+1. ~~**Fleet backup** — `gr create` so cycle-in is redundant on acer+tenx, not GitHub-only.~~
+2. **Renovate app install** — Ryan-only (his GitHub account): https://github.com/apps/renovate
+   scoped to `cycle-in`. Until then `renovate.json` is inert — no onboarding PR exists, so the
+   app is not installed.
+3. **Minor code notes** — comment the `monthly`=30-day approximation; derive
+   `Impression.acted` instead of storing it (fold both into #6's event-log rework).
+4. **Privacy constraint** — record that practice data must never land in this public repo
+   (rules out naive git-backed sync *here*; a separate private `cycle-in-data` home on the
+   fleet is the natural fit). Feeds the sync decision.
+5. **PWA manifest + service worker** — phone home-screen install + offline shell; watch the
+   `/cycle-in/` base path and cache-update strategy.
+6. **Event-log data model** — the big one. Append-only events (`item-added`, `started`,
+   `done`, `held`, `released`, `archived`, `time-logged`, `impression-shown`, corrections)
+   with a pure reducer deriving state. Rationale: sync becomes a conflict-free union of event
+   sets (transport choice stops being load-bearing — manual export/import works day 1, a
+   backend can come later without remodeling); it's the ideal `fast-check` target ("any
+   merge-order of two devices' events yields the same state"); retroactive marking and undo
+   fall out for free; matches the git-redundancy/home-fleet append-only-audit ethos.
+
+## UI-flow gaps (2026-07-08 second pass)
+
+Found by re-walking the described flow against the docs and `src/core/types.ts`; the first
+two are doc-vs-code drift that already exists:
+
+1. **General promote/demote-cadence flow is unspecced** — "advance to next node" covers BV
+   items, but the plain "cello is going well, drop it daily→weekly" / "piano is fading, bump
+   it up" flow was never written down. It's the literal core of "cycle-in."
+2. **"Bump priority for tomorrow" is in the README but not the data model** — `Item` has no
+   priority/bump field, and no event for it.
+3. **"Daily" semantics: calendar-day vs 24h-elapsed.** `isDue` uses elapsed ms, so an item
+   done at 11pm isn't due until 11pm the next day (and drifts later daily). Intent is almost
+   certainly calendar-day. Same question for weekly (ISO week?) and monthly (same date vs 30
+   days — currently 30 days).
+4. **No item-management view** — the main page shows only the next 5–10; there's nowhere to
+   list all items or hold/archive/edit/recategorize one that isn't currently suggested.
+5. **Category consistency** — free-typed categories fragment rollups (typo = new category).
+   Needs pick-from-existing + add-new at entry, and eventually rename/merge.
+6. **"Not today" (dismiss for today)** — distinct from done/hold/archive; missing.
+7. **No edit/undo on log entries** — phone mis-taps are guaranteed; correction events under
+   the event-log model handle this naturally.
+8. **Empty/first-run state** — new device, no data: needs a deliberate "import a bundle /
+   start fresh" screen (especially while sync is manual).
+
 ## Open questions (deliberately unresolved)
 
-- **Cross-device sync model** — see "Immediate next step" above. The load-bearing one.
+- **Cross-device sync model** — see "Immediate next step" above. The load-bearing one. The
+  event-log model (worklist #6) is designed to make this decision *less* load-bearing, and the
+  privacy constraint (worklist #4) rules out naive git-backed sync in this public repo.
 - **Category-coverage view** — its own page/dashboard, or folded into the main "next 5–10" page?
 - **Ranking precedence** — cadence-overdue-ness vs. category balance vs. manual bumps, when
   they disagree about what belongs in the next 5–10.
