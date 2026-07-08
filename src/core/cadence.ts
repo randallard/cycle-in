@@ -1,33 +1,56 @@
-import type { Item } from "./types";
+import type { ItemState } from "./types";
+import { dayKey, fromDayKey, monthKey, timeHasPassed, weekKey } from "./time";
 
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
-
-const CADENCE_INTERVAL_DAYS: Record<
-  Exclude<Item["cadence"]["kind"], "one-off">,
-  number
-> = {
-  daily: 1,
-  "daily-at-time": 1,
-  weekly: 7,
-  monthly: 30,
-};
+/** Has this item been done within the calendar period containing `now`?
+ * (ADR-0003: daily = calendar day, weekly = Monday-start week, monthly =
+ * calendar month; one-off = ever.) */
+export function doneThisPeriod(item: ItemState, now: Date): boolean {
+  if (item.lastDoneDay === undefined) return false;
+  const last = fromDayKey(item.lastDoneDay);
+  switch (item.cadence.kind) {
+    case "daily":
+      return item.lastDoneDay === dayKey(now);
+    case "weekly":
+      return weekKey(last) === weekKey(now);
+    case "monthly":
+      return monthKey(last) === monthKey(now);
+    case "one-off":
+      return true; // done once = done forever
+  }
+}
 
 /**
- * Is `item` due to be suggested at `now`?
+ * Is `item` due at `now`? Strict calendar periods; an optimal time (`atTime`)
+ * delays due-ness to that local time on the due day.
  *
- * - An archived item is never due.
- * - A held item is always due, regardless of cadence — that's the point of a hold.
- * - A never-done item is always due (nothing to measure elapsed time against yet).
- * - A one-off item is due exactly once: never again after it's been done.
- * - Otherwise, due once its cadence interval has elapsed since `lastDoneAt`.
+ * - Archived → never. Held → always (that's the point of a hold).
+ * - Done this period → not due again until the next period.
+ * - Otherwise due — except a timed item before its time today, which is
+ *   "upcoming" (eligible for early backfill, not yet due).
  */
-export function isDue(item: Item, now: Date): boolean {
+export function isDue(item: ItemState, now: Date): boolean {
   if (item.archived) return false;
   if (item.held) return true;
-  if (!item.lastDoneAt) return true;
-  if (item.cadence.kind === "one-off") return false;
+  if (doneThisPeriod(item, now)) return false;
+  const t = item.cadence.atTime;
+  if (t !== undefined && !timeHasPassed(now, t)) return false;
+  return true;
+}
 
-  const intervalDays = CADENCE_INTERVAL_DAYS[item.cadence.kind];
-  const elapsedMs = now.getTime() - new Date(item.lastDoneAt).getTime();
-  return elapsedMs >= intervalDays * MS_PER_DAY;
+/** Should the UI render this item orange? True when its optimal time has
+ * passed today and it hasn't been done yet (per ADR-0003 / the original spec:
+ * orange = "you said this time of day, and it already went by"). */
+export function isOverdueForTime(item: ItemState, now: Date): boolean {
+  const t = item.cadence.atTime;
+  if (t === undefined || item.archived) return false;
+  return timeHasPassed(now, t) && !doneThisPeriod(item, now);
+}
+
+/** Upcoming = would be due this period but isn't yet (a timed item before its
+ * time). Used for the "early" backfill when the due list runs short. */
+export function isUpcoming(item: ItemState, now: Date): boolean {
+  if (item.archived || item.held) return false;
+  if (doneThisPeriod(item, now)) return false;
+  const t = item.cadence.atTime;
+  return t !== undefined && !timeHasPassed(now, t);
 }

@@ -14,29 +14,26 @@ the real data layer is an explicit stub. Low-key personal project
 — no deadline, work on it as time allows. Not currently reflected in `work/README.md`'s
 "Right now" line (by choice) — see `work/`'s own index instead.
 
-**Immediate next step — the sync-model decision blocks real data-layer work.** Ryan wants the
-main "use" page usable from his phone, and to log time from wherever he is — but
-`src/shell/storage.ts` (currently an in-memory stub, see its own comment) can't become the real
-data layer until this is settled, since it determines the whole architecture:
-- Manual export/import, branching-video-style (simplest, matches precedent, but manual)
-- A small real backend, e.g. hosted on the home-fleet server (live sync, no manual step, but
-  breaks "static site only" and adds a service to run/secure)
-- Git-backed sync (state as JSON in a repo, auditable by construction, but commit-from-phone
-  friction)
+**The core is built ([ADR-0003](adr/0003-append-only-event-log-core.md), reviewed by Ryan and
+committed 2026-07-08).** The append-only event log + pure reducer +
+calendar-period cadences + category-balanced selection + rollups are implemented in
+`src/core/` (`events.ts`, `reduce.ts`, `time.ts`, `cadence.ts`, `select.ts`, `rollup.ts`) with
+24 passing tests including the flagship properties (reducer permutation-invariance, selection
+monotonicity/determinism/caps). The sync-model question is still open but **demoted** by
+ADR-0003: any transport that can union two event sets works, so it no longer blocks anything.
 
-**Once that's decided**, build (still nothing beyond the stub):
-- **The real data layer**, replacing `src/shell/storage.ts`'s in-memory stub, per whichever
-  sync model gets picked.
-- **Item / log-entry / impression shapes** — types already exist in `src/core/types.ts` (items
-  with cadence + hold state; log entries independent of items for freeform time-tracking;
-  impressions so a cycled-off item can be retroactively marked). `src/core/cadence.ts`'s
-  `isDue` is the first pure function on top of them; the ranking/rollup logic is next.
-- **The "next 5–10" ranking** — cadence-overdue-ness, category balance, manual priority bumps.
-  Precedence order between those three isn't decided yet.
-- **The branching-video integration** — import (assign category/sub-category to incoming BV
-  items), the onboarding/review screen (what's pulled in vs. not), and the "advance to next
-  node" flow, which needs `cycle-in` to actually parse a BV config's node graph well enough to
-  list nodes to choose from — a real integration surface, not just a stored link.
+**Next build steps, in order:**
+- **IndexedDB event store** replacing `src/shell/storage.ts`'s in-memory stub (append +
+  read-all only, no semantics; growth math in ADR-0003).
+- **Export/import event bundle** — the BV-style manual sync that works with any future
+  transport; union-by-event-id merge, trivially safe per ADR-0003.
+- **The real UI** — the choices page (options list + per-category day/week/month attention +
+  category-focus view + done/start/hold/dismiss/bump/log actions), then the item-management
+  view, the recent-suggestions review (impressions), and first-run/import. PWA
+  manifest/service worker (worklist #5) fits naturally alongside.
+- **The branching-video integration** — import with category assignment, the onboarding/review
+  screen, and "advance to next node" (`bv-node-advanced` events exist; the config-graph parse
+  and UI don't yet).
 
 ## Provability
 
@@ -68,56 +65,52 @@ From a post-scaffold review session with Ryan; work through in order:
 2. **Renovate app install** — Ryan-only (his GitHub account): https://github.com/apps/renovate
    scoped to `cycle-in`. Until then `renovate.json` is inert — no onboarding PR exists, so the
    app is not installed.
-3. **Minor code notes** — comment the `monthly`=30-day approximation; derive
-   `Impression.acted` instead of storing it (fold both into #6's event-log rework).
+3. ~~**Minor code notes**~~ — absorbed by #6: `Impression.acted` no longer exists (derived),
+   the 30-day question dissolved into calendar-month semantics.
 4. **Privacy constraint** — record that practice data must never land in this public repo
    (rules out naive git-backed sync *here*; a separate private `cycle-in-data` home on the
-   fleet is the natural fit). Feeds the sync decision.
+   fleet is the natural fit). Feeds the sync decision; noted here, full ADR when sync lands.
 5. **PWA manifest + service worker** — phone home-screen install + offline shell; watch the
    `/cycle-in/` base path and cache-update strategy.
-6. **Event-log data model** — the big one. Append-only events (`item-added`, `started`,
-   `done`, `held`, `released`, `archived`, `time-logged`, `impression-shown`, corrections)
-   with a pure reducer deriving state. Rationale: sync becomes a conflict-free union of event
-   sets (transport choice stops being load-bearing — manual export/import works day 1, a
-   backend can come later without remodeling); it's the ideal `fast-check` target ("any
-   merge-order of two devices' events yields the same state"); retroactive marking and undo
-   fall out for free; matches the git-redundancy/home-fleet append-only-audit ethos.
+6. ~~**Event-log data model**~~ — **core implemented 2026-07-08 (evening)** per
+   [ADR-0003](adr/0003-append-only-event-log-core.md), after a design deliberation with Ryan
+   that settled cadence semantics (strict calendar periods, Monday weeks), due-at-time for
+   timed items, the category-balanced selection algorithm (config max, default 10; even split
+   on a fresh day shifting toward less-logged categories; day-seeded randomness), one-shot
+   bumps, and backfill-with-"early". Remaining under this item: the IndexedDB event store and
+   the export/import bundle (see "Next build steps").
 
-## UI-flow gaps (2026-07-08 second pass)
+## UI-flow gaps (2026-07-08 second pass; core-level ones closed by ADR-0003 the same evening)
 
-Found by re-walking the described flow against the docs and `src/core/types.ts`; the first
-two are doc-vs-code drift that already exists:
+Found by re-walking the described flow against the docs and the then-current
+`src/core/types.ts`. Status after the ADR-0003 core landed:
 
-1. **General promote/demote-cadence flow is unspecced** — "advance to next node" covers BV
-   items, but the plain "cello is going well, drop it daily→weekly" / "piano is fading, bump
-   it up" flow was never written down. It's the literal core of "cycle-in."
-2. **"Bump priority for tomorrow" is in the README but not the data model** — `Item` has no
-   priority/bump field, and no event for it.
-3. **"Daily" semantics: calendar-day vs 24h-elapsed.** `isDue` uses elapsed ms, so an item
-   done at 11pm isn't due until 11pm the next day (and drifts later daily). Intent is almost
-   certainly calendar-day. Same question for weekly (ISO week?) and monthly (same date vs 30
-   days — currently 30 days).
-4. **No item-management view** — the main page shows only the next 5–10; there's nowhere to
-   list all items or hold/archive/edit/recategorize one that isn't currently suggested.
-5. **Category consistency** — free-typed categories fragment rollups (typo = new category).
-   Needs pick-from-existing + add-new at entry, and eventually rename/merge.
-6. **"Not today" (dismiss for today)** — distinct from done/hold/archive; missing.
-7. **No edit/undo on log entries** — phone mis-taps are guaranteed; correction events under
-   the event-log model handle this naturally.
-8. **Empty/first-run state** — new device, no data: needs a deliberate "import a bundle /
-   start fresh" screen (especially while sync is manual).
+1. ~~**General promote/demote-cadence flow**~~ — `cadence-changed` is a first-class event;
+   the UI verb still needs building, but the model gap is closed.
+2. ~~**"Bump priority for tomorrow" missing from the model**~~ — `priority-bumped` event,
+   one-shot for `forDate`, expires with the day.
+3. ~~**Calendar-day vs 24h-elapsed**~~ — strict calendar periods (daily / Monday-start week /
+   calendar month); timed items due *at* their time. The drift is gone; tested.
+4. **No item-management view** — still open; UI work ("Next build steps").
+5. **Category consistency** — still open; UI work (pick-from-existing + add-new; a
+   `category-renamed` event is the eventual rename/merge mechanism).
+6. ~~**"Not today"**~~ — `dismissed-today` event; excluded from that day's selection only.
+7. ~~**No edit/undo on log entries**~~ — `log-corrected` + `event-retracted` events.
+8. **Empty/first-run state** — still open; UI work.
 
 ## Open questions (deliberately unresolved)
 
-- **Cross-device sync model** — see "Immediate next step" above. The load-bearing one. The
-  event-log model (worklist #6) is designed to make this decision *less* load-bearing, and the
-  privacy constraint (worklist #4) rules out naive git-backed sync in this public repo.
-- **Category-coverage view** — its own page/dashboard, or folded into the main "next 5–10" page?
-- **Ranking precedence** — cadence-overdue-ness vs. category balance vs. manual bumps, when
-  they disagree about what belongs in the next 5–10.
-- **Archiving vs. cycling off** — "done for now, comes back per cadence" vs. "retired, never
-  suggest again" are different item end-states in `src/core/types.ts`, but nothing in the UI
-  distinguishes them yet (there's no UI at all yet).
+- **Cross-device sync model** — still open but **demoted by ADR-0003**: any transport that
+  can union two event sets works; the privacy constraint (worklist #4) rules out naive
+  git-backed sync in this public repo.
+- **Category-coverage view** — Ryan settled the main-page part (per-category day/week/month
+  attention shows inline on the choices page, plus a category-focus view); whether a separate
+  richer dashboard is also wanted stays open.
+- ~~**Ranking precedence**~~ — settled by Ryan 2026-07-08: held → bumped-for-today →
+  timed-and-due → category-balanced untimed due (inverse attention) → "early" backfill. See
+  ADR-0003.
+- **Archiving vs. cycling off** — model distinguishes them (`item-archived` vs a normal
+  period rollover); UI still needs to expose both verbs distinctly.
 - **Socket.dev or equivalent** — flagged in ADR-0002 as a real gap (catching an in-progress
   compromise, not just a disclosed CVE); not wired in this round.
 

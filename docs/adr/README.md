@@ -44,3 +44,4 @@ MADR-lite form below.
 | [0000](0000-record-architecture-decisions.md) | Record architecture decisions (use ADRs) | Accepted |
 | [0001](0001-provable-lite-strict-ts-and-property-tests-no-rust-core.md) | Provable-lite — strict TypeScript + property tests, no Rust/WASM core | Accepted |
 | [0002](0002-npm-supply-chain-discipline.md) | npm-ecosystem supply-chain discipline | Accepted |
+| [0003](0003-append-only-event-log-core.md) | Append-only event log core, calendar-period cadences, category-balanced selection | Accepted |
