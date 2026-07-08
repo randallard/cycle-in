@@ -4,10 +4,13 @@ _Last updated: 2026-07-08_
 
 ## Status / next
 
-**Status:** Repo scaffolded and verified working end-to-end — Vite + TypeScript strict +
-ESLint + Vitest + `fast-check`, a minimal proof-of-life page, CI (build/test/lint, a
-supply-chain job, OSV-Scanner, GitHub Pages deploy), and this docs set. Nothing beyond
-proof-of-life is built yet: the real data layer is an explicit stub. Low-key personal project
+**Status:** Repo scaffolded, pushed, and **confirmed live**: https://randallard.github.io/cycle-in/
+(HTTP 200, verified directly with `curl`, not just a green CI checkmark) — Vite + TypeScript
+strict + ESLint + Vitest + `fast-check`, a minimal proof-of-life page, CI (build/test/lint, a
+supply-chain job, OSV-Scanner, GitHub Pages deploy), and this docs set. Two real CI bugs found
+and fixed post-push (OSV-Scanner job permissions; Node 20→22 for pnpm's own engine requirement)
+— see the 2026-07-08 (later still) journal entry. Nothing beyond proof-of-life is built yet:
+the real data layer is an explicit stub. Low-key personal project
 — no deadline, work on it as time allows. Not currently reflected in `work/README.md`'s
 "Right now" line (by choice) — see `work/`'s own index instead.
 
@@ -70,6 +73,20 @@ and why each was reverted.
   compromise, not just a disclosed CVE); not wired in this round.
 
 ## Log
+
+### 2026-07-08 (later still) — pushed, CI fixed, confirmed live
+
+First push (`69b87ba`) failed before any job ran — GitHub's validation error, fetched directly
+rather than guessed: the OSV-Scanner reusable-workflow job needs `actions: read` +
+`security-events: write`, which the workflow's top-level `permissions: contents: read` denied
+by default once set at all. Fixed in `b0d7bc5`. Next run got further but `build + test` and
+`supply-chain` both failed at Node setup: pnpm 11.5.3 requires Node ≥22.13, workflow had 20
+pinned — invisible locally since this machine runs Node 24. Fixed in `01b69af` (workflow →
+Node 22, `package.json`'s `engines.node` corrected to match reality). Also enabled GitHub Pages
+itself via the API (`build_type: workflow`) since it had never been turned on for this repo.
+Third push: all four jobs green. Confirmed the site is actually reachable, not just that the
+deploy step reported success — `curl`'d the live URL and its JS bundle directly (both HTTP
+200). Full detail: [`journal/2026-07-08-4-ci-fixes-and-live-verification.md`](journal/2026-07-08-4-ci-fixes-and-live-verification.md).
 
 ### 2026-07-08 (scaffolding session) — repo stood up, verified, and documented
 
