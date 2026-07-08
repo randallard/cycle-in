@@ -55,3 +55,6 @@ pass (a non-distributive `Omit` over the event union being the interesting one).
 
 Left **uncommitted** for Ryan's local review, per his standing rule — `pnpm dev` shows the
 demo page driving the real pipeline.
+
+*Follow-up: reviewed and landed as `83ff04e` (this reference added per the journal's
+self-reference convention — an entry can't name its own commit's hash).*
