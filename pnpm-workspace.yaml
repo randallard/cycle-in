@@ -1,0 +1,9 @@
+# Native build scripts are blocked by default (ADR-0002, npm supply-chain discipline).
+# Anything listed here has been individually reviewed, not blanket-approved.
+allowBuilds:
+  # Optional peer of @cyclonedx/cyclonedx-library, only used for XML-format SBOM
+  # output. We generate JSON SBOMs only (matches git-redundancy's `cargo cyclonedx
+  # --format json`), so its native build script is deliberately never needed —
+  # reviewed 2026-07-08, not silently skipped.
+  libxmljs2: false
+onlyBuiltDependencies: []
