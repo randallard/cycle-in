@@ -1,14 +1,15 @@
 import type { LogEntryState } from "./types";
+import type { Weekday } from "./time";
 import { dayKey, fromDayKey, monthKey, weekKey } from "./time";
 
 export type Period = "day" | "week" | "month";
 
-function periodKeyOf(period: Period, d: Date): string {
+function periodKeyOf(period: Period, d: Date, weekStartsOn: Weekday): string {
   switch (period) {
     case "day":
       return dayKey(d);
     case "week":
-      return weekKey(d);
+      return weekKey(d, weekStartsOn);
     case "month":
       return monthKey(d);
   }
@@ -20,12 +21,14 @@ function periodKeyOf(period: Period, d: Date): string {
 export function minutesByCategory(
   entries: readonly LogEntryState[],
   period: Period,
-  now: Date
+  now: Date,
+  weekStartsOn: Weekday = 1
 ): Record<string, number> {
-  const key = periodKeyOf(period, now);
+  const key = periodKeyOf(period, now, weekStartsOn);
   const out: Record<string, number> = {};
   for (const e of entries) {
-    if (periodKeyOf(period, fromDayKey(e.effectiveDay)) !== key) continue;
+    if (periodKeyOf(period, fromDayKey(e.effectiveDay), weekStartsOn) !== key)
+      continue;
     out[e.category] = (out[e.category] ?? 0) + (e.minutes ?? 0);
   }
   return out;
@@ -36,12 +39,14 @@ export function minutesByCategory(
 export function minutesBySubCategory(
   entries: readonly LogEntryState[],
   period: Period,
-  now: Date
+  now: Date,
+  weekStartsOn: Weekday = 1
 ): Record<string, number> {
-  const key = periodKeyOf(period, now);
+  const key = periodKeyOf(period, now, weekStartsOn);
   const out: Record<string, number> = {};
   for (const e of entries) {
-    if (periodKeyOf(period, fromDayKey(e.effectiveDay)) !== key) continue;
+    if (periodKeyOf(period, fromDayKey(e.effectiveDay), weekStartsOn) !== key)
+      continue;
     const k =
       e.subCategory !== undefined
         ? `${e.category}/${e.subCategory}`

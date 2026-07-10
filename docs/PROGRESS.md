@@ -1,6 +1,6 @@
 # Progress & Status
 
-_Last updated: 2026-07-08_
+_Last updated: 2026-07-10_
 
 ## Status / next
 
@@ -22,18 +22,45 @@ calendar-period cadences + category-balanced selection + rollups are implemented
 monotonicity/determinism/caps). The sync-model question is still open but **demoted** by
 ADR-0003: any transport that can union two event sets works, so it no longer blocks anything.
 
+**2026-07-10 session:** the **IndexedDB event store is built** (async `EventStore`, `put`
+keyed by event id so appends are idempotent — sync-replay safe; `fake-indexeddb` vetted per
+ADR-0002 for tests; demo seeds only an empty store, so persistence is visible across
+reloads). **Week start is now a config value** (`weekStartsOn` in `src/core/config.ts`'s
+`CycleConfig`, default Monday), threaded through cadences, rollups, and selection. **License
+decided: MIT** (Ryan's pick, fork-friendliness the criterion) — `LICENSE` + package.json +
+README "Fork it" section. The **GitHub remote was missing from this checkout** (fleet
+remotes only) and was restored as `origin`. 31 tests passing. New scope recorded below.
+
+## Scope & requirements (2026-07-10 additions)
+
+- **Fork-and-configure goal**: people can fork this repo, set their preferences, and start
+  using it easily. Consequence: user preferences accumulate in `src/core/config.ts`
+  (`CycleConfig` — `maxOptions`, `weekStartsOn` so far), never scattered; a friendlier
+  settings surface comes with the real UI; MIT license supports this.
+- **Terminology convention**: in requirements Ryan states, "I"/"my" means **the user**/"the
+  user's" — features are for any user of a fork, not hardcoded to Ryan.
+- **YouTube playlist integration**: the user can hook into **specific playlists on their
+  YouTube account** as an item source (alongside the BV bundle and custom reminders).
+- **"Planning" section on the main page**: shows, per configured YouTube playlist, **how many
+  videos are not yet incorporated or set to cycle in** — the backlog view that makes
+  un-onboarded material visible. (How a static site reads playlists — Data API key for
+  public playlists vs OAuth for private ones, per-fork key config — is an open question
+  below.)
+
 **Next build steps, in order:**
-- **IndexedDB event store** replacing `src/shell/storage.ts`'s in-memory stub (append +
-  read-all only, no semantics; growth math in ADR-0003).
 - **Export/import event bundle** — the BV-style manual sync that works with any future
   transport; union-by-event-id merge, trivially safe per ADR-0003.
 - **The real UI** — the choices page (options list + per-category day/week/month attention +
   category-focus view + done/start/hold/dismiss/bump/log actions), then the item-management
   view, the recent-suggestions review (impressions), and first-run/import. PWA
-  manifest/service worker (worklist #5) fits naturally alongside.
+  manifest/service worker (worklist #5) fits naturally alongside. The **Planning section**
+  (YouTube backlog counts, above) is part of the main page.
 - **The branching-video integration** — import with category assignment, the onboarding/review
   screen, and "advance to next node" (`bv-node-advanced` events exist; the config-graph parse
   and UI don't yet).
+- **YouTube playlist integration** — playlist config, fetch, per-playlist
+  not-yet-incorporated counts feeding the Planning section, and importing a video as an item
+  (needs the API-access design decision first).
 
 ## Provability
 
@@ -77,8 +104,8 @@ From a post-scaffold review session with Ryan; work through in order:
    that settled cadence semantics (strict calendar periods, Monday weeks), due-at-time for
    timed items, the category-balanced selection algorithm (config max, default 10; even split
    on a fresh day shifting toward less-logged categories; day-seeded randomness), one-shot
-   bumps, and backfill-with-"early". Remaining under this item: the IndexedDB event store and
-   the export/import bundle (see "Next build steps").
+   bumps, and backfill-with-"early". The IndexedDB event store landed 2026-07-10; remaining
+   under this item: the export/import bundle (see "Next build steps").
 
 ## UI-flow gaps (2026-07-08 second pass; core-level ones closed by ADR-0003 the same evening)
 
@@ -100,6 +127,11 @@ Found by re-walking the described flow against the docs and the then-current
 
 ## Open questions (deliberately unresolved)
 
+- **YouTube playlist access from a static site** (new 2026-07-10) — the Data API can read
+  *public* playlists with just an API key (which is per-fork config and visible client-side —
+  quota abuse is the risk to think through), but *private* playlists need OAuth. Decide the
+  v1 shape (public-playlists-only with an API key is the simplest honest start) when the
+  YouTube build step comes up.
 - **Cross-device sync model** — still open but **demoted by ADR-0003**: any transport that
   can union two event sets works; the privacy constraint (worklist #4) rules out naive
   git-backed sync in this public repo.
@@ -115,6 +147,18 @@ Found by re-walking the described flow against the docs and the then-current
   compromise, not just a disclosed CVE); not wired in this round.
 
 ## Log
+
+### 2026-07-10 — week-start config, MIT license, IndexedDB store, YouTube scope
+
+Restored the missing GitHub remote (`origin`) in this checkout — fleet remotes only until
+now, though GitHub was already at the same commit. Made the week's start day a config value
+(`CycleConfig.weekStartsOn`, default Monday), decided MIT (Ryan's pick), built the IndexedDB
+event store (first "next build step" — async, idempotent-by-event-id appends,
+`fake-indexeddb` vetted per ADR-0002 for its tests), and recorded the new scope: the
+fork-and-configure goal, the "I = the user" terminology convention, YouTube playlist
+integration, and the main-page Planning section (per-playlist not-yet-incorporated counts).
+31 tests passing. Full detail:
+[`journal/2026-07-10-1-week-config-license-idb-store-and-youtube-scope.md`](journal/2026-07-10-1-week-config-license-idb-store-and-youtube-scope.md).
 
 ### 2026-07-08 (later still) — pushed, CI fixed, confirmed live
 

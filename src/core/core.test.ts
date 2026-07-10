@@ -5,7 +5,8 @@ import { reduce } from "./reduce";
 import { doneThisPeriod, isDue, isOverdueForTime, isUpcoming } from "./cadence";
 import { minutesByCategory } from "./rollup";
 import { selectOptions } from "./select";
-import { seededShuffle, weekKey } from "./time";
+import { fromDayKey, seededShuffle, weekKey } from "./time";
+import type { Weekday } from "./time";
 import type { Cadence, State } from "./types";
 
 // --- event builder: unique ids, strictly increasing timestamps --------------
@@ -208,6 +209,43 @@ describe("cadence", () => {
     expect(isDue(doneMonday, new Date(2026, 6, 12, 23, 0))).toBe(false); // Sunday, same week
   });
 
+  it("PROPERTY: weekKey starts weeks on the configured day, within 6 days back", () => {
+    fc.assert(
+      fc.property(
+        fc.date({
+          min: new Date(2000, 0, 1),
+          max: new Date(2100, 0, 1),
+          noInvalidDate: true,
+        }),
+        fc.integer({ min: 0, max: 6 }),
+        (d, s) => {
+          const start = s as Weekday;
+          const startDay = fromDayKey(weekKey(d, start));
+          expect(startDay.getDay()).toBe(start);
+          const localMidnight = new Date(
+            d.getFullYear(),
+            d.getMonth(),
+            d.getDate()
+          );
+          const daysBack = Math.round(
+            (localMidnight.getTime() - startDay.getTime()) / 86_400_000
+          );
+          expect(daysBack).toBeGreaterThanOrEqual(0);
+          expect(daysBack).toBeLessThanOrEqual(6);
+        }
+      )
+    );
+  });
+
+  it("configured Sunday-start weeks: done Sunday covers through Saturday", () => {
+    // 2026-07-05 is a Sunday; 2026-07-08 a Wednesday; 2026-07-11 a Saturday.
+    const doneSunday = itemState({ kind: "weekly" }, "2026-07-05");
+    expect(isDue(doneSunday, new Date(2026, 6, 8, 12, 0))).toBe(true); // Monday weeks
+    expect(isDue(doneSunday, new Date(2026, 6, 8, 12, 0), 0)).toBe(false);
+    expect(isDue(doneSunday, new Date(2026, 6, 11, 23, 0), 0)).toBe(false);
+    expect(isDue(doneSunday, new Date(2026, 6, 12, 8, 0), 0)).toBe(true); // next Sunday
+  });
+
   it("monthly rolls over on the 1st", () => {
     const it_ = itemState({ kind: "monthly" }, "2026-06-30");
     expect(isDue(it_, new Date(2026, 6, 1, 0, 1))).toBe(true);
@@ -350,6 +388,20 @@ describe("selectOptions", () => {
     const out = selectOptions(reduce(b.events), NOON);
     expect(out).toHaveLength(1);
     expect(out[0]).toMatchObject({ item: { id: "evening" }, reason: "early" });
+  });
+
+  it("honors weekStartsOn: weekly item done Sunday stays off the list all week", () => {
+    const b = builder();
+    b.addItem("laundry", "home", { kind: "weekly" });
+    b.done("laundry", "2026-07-05"); // Sunday
+    const s = reduce(b.events);
+    const wednesday = new Date(2026, 6, 8, 12, 0);
+    expect(
+      selectOptions(s, wednesday).map((e) => e.item.id)
+    ).toContain("laundry"); // Monday weeks: new week began, due again
+    expect(
+      selectOptions(s, wednesday, { weekStartsOn: 0 }).map((e) => e.item.id)
+    ).not.toContain("laundry"); // Sunday weeks: still covered
   });
 
   it("focusCategory filters to a single category", () => {

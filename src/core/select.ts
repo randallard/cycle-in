@@ -1,14 +1,10 @@
 import { isDue, isOverdueForTime, isUpcoming } from "./cadence";
+import { DEFAULT_CONFIG, type CycleConfig } from "./config";
 import { minutesByCategory, minutesBySubCategory } from "./rollup";
 import { dayKey, hashString, seededShuffle } from "./time";
 import type { ItemState, State } from "./types";
 
-export interface SelectConfig {
-  /** Maximum entries on the choices list (Ryan: config value, default 10). */
-  maxOptions: number;
-}
-
-export const DEFAULT_CONFIG: SelectConfig = { maxOptions: 10 };
+export { DEFAULT_CONFIG, type CycleConfig } from "./config";
 
 export type SelectionReason =
   | "held"
@@ -40,9 +36,11 @@ export interface SelectionEntry {
 export function selectOptions(
   state: State,
   now: Date,
-  config: SelectConfig = DEFAULT_CONFIG,
+  config: Partial<CycleConfig> = {},
   focusCategory?: string
 ): SelectionEntry[] {
+  const cfg: CycleConfig = { ...DEFAULT_CONFIG, ...config };
+  const weekStartsOn = cfg.weekStartsOn;
   const today = dayKey(now);
   const dismissedToday = new Set(
     state.dismissals.filter((d) => d.date === today).map((d) => d.itemId)
@@ -61,9 +59,13 @@ export function selectOptions(
   const out: SelectionEntry[] = [];
   const taken = new Set<string>();
   const push = (item: ItemState, reason: SelectionReason) => {
-    if (taken.has(item.id) || out.length >= config.maxOptions) return;
+    if (taken.has(item.id) || out.length >= cfg.maxOptions) return;
     taken.add(item.id);
-    out.push({ item, reason, orange: isOverdueForTime(item, now) });
+    out.push({
+      item,
+      reason,
+      orange: isOverdueForTime(item, now, weekStartsOn),
+    });
   };
 
   // 1. Held — always present, regardless of cadence.
@@ -73,7 +75,9 @@ export function selectOptions(
 
   // 2. Bumped for today (one-shot; expires with the day).
   for (const it of sortStable(
-    visible.filter((it) => bumpedToday.has(it.id) && isDue(it, now))
+    visible.filter(
+      (it) => bumpedToday.has(it.id) && isDue(it, now, weekStartsOn)
+    )
   )) {
     push(it, "bumped");
   }
@@ -82,7 +86,9 @@ export function selectOptions(
   for (const it of sortStable(
     visible.filter(
       (it) =>
-        !it.held && it.cadence.atTime !== undefined && isDue(it, now)
+        !it.held &&
+        it.cadence.atTime !== undefined &&
+        isDue(it, now, weekStartsOn)
     )
   )) {
     push(it, "due-timed");
@@ -91,17 +97,19 @@ export function selectOptions(
   // 4. Untimed due items, category-balanced by inverse attention.
   const pool = visible.filter(
     (it) =>
-      !taken.has(it.id) && it.cadence.atTime === undefined && isDue(it, now)
+      !taken.has(it.id) &&
+      it.cadence.atTime === undefined &&
+      isDue(it, now, weekStartsOn)
   );
-  const slots = config.maxOptions - out.length;
+  const slots = cfg.maxOptions - out.length;
   for (const it of allocateByCategory(pool, slots, state, now, today)) {
     push(it, "due");
   }
 
   // 5. Backfill with upcoming ("early") items if the list ran short.
-  if (out.length < config.maxOptions) {
+  if (out.length < cfg.maxOptions) {
     const early = visible.filter(
-      (it) => !taken.has(it.id) && isUpcoming(it, now)
+      (it) => !taken.has(it.id) && isUpcoming(it, now, weekStartsOn)
     );
     const seed = hashString(`${today}|early`);
     for (const it of seededShuffle(sortStable(early), seed)) {

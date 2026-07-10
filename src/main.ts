@@ -3,11 +3,8 @@ import { reduce } from "./core/reduce";
 import { minutesByCategory } from "./core/rollup";
 import { selectOptions } from "./core/select";
 import { dayKey } from "./core/time";
-import { createInMemoryStore } from "./shell/storage";
+import { createInMemoryStore, openIndexedDbStore } from "./shell/storage";
 
-// Demo data, exercising the ADR-0003 pipeline end-to-end: events → reducer →
-// selection + rollups. Replaced by the real event store once sync is decided.
-const store = createInMemoryStore();
 const now = new Date();
 const today = dayKey(now);
 
@@ -37,14 +34,25 @@ const demo: EventInput[] = [
   { kind: "item-added", item: { id: "run", name: "Run", category: "exercise", cadence: { kind: "daily", atTime: { hour: 7, minute: 0 } } } },
   { kind: "time-logged", entryId: "l1", category: "music", subCategory: "cello", minutes: 25, effectiveDate: today },
 ];
-for (const e of demo) store.append(ev(e));
 
-const state = reduce(store.all());
-const options = selectOptions(state, now);
-const attention = minutesByCategory(state.logEntries, "day", now);
+async function main(): Promise<void> {
+  // Real IndexedDB store (persists across reloads); in-memory only where
+  // IndexedDB doesn't exist. Demo events seed the store on first run only —
+  // the real UI replaces this whole block ("Next build steps" in PROGRESS.md).
+  const store =
+    typeof indexedDB === "undefined"
+      ? createInMemoryStore()
+      : await openIndexedDbStore();
+  if ((await store.all()).length === 0) {
+    for (const e of demo) await store.append(ev(e));
+  }
 
-const app = document.querySelector<HTMLDivElement>("#app");
-if (app) {
+  const state = reduce(await store.all());
+  const options = selectOptions(state, now);
+  const attention = minutesByCategory(state.logEntries, "day", now);
+
+  const app = document.querySelector<HTMLDivElement>("#app");
+  if (!app) return;
   const list = options
     .map((o) => {
       const style = o.orange ? ' style="color: darkorange"' : "";
@@ -57,7 +65,8 @@ if (app) {
     .join("");
   app.innerHTML = `
     <h1>cycle-in</h1>
-    <p>Event-log core demo (ADR-0003) — data layer still stubbed, see
+    <p>Event-log core demo (ADR-0003), now persisted in IndexedDB — reloads
+    keep the same events. Real UI not built yet; see
     <code>docs/PROGRESS.md</code>.</p>
     <h2>Options right now</h2>
     <ul>${list}</ul>
@@ -65,3 +74,5 @@ if (app) {
     <ul>${rollup}</ul>
   `;
 }
+
+void main();

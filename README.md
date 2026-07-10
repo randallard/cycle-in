@@ -30,6 +30,16 @@ build momentum), instead of relying on memory or a stale mental list.
 Full design, including what's still explicitly undecided (the cross-device sync model, most
 notably): [`docs/PROGRESS.md`](docs/PROGRESS.md).
 
+## Fork it
+
+cycle-in is [MIT-licensed](LICENSE) and meant to be forked: the goal is that anyone can fork
+this repo, adjust the config to their preferences, and start using it on their own GitHub
+Pages. User-tunable preferences live in one place — `src/core/config.ts` (`CycleConfig`):
+the choices-list size (`maxOptions`, default 10) and the first day of the week
+(`weekStartsOn`, default Monday) so far; new preferences accumulate there rather than being
+scattered. A friendlier config surface (a settings file or in-app settings) comes with the
+real UI.
+
 ## Development
 
 ```bash

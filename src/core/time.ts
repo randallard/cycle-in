@@ -15,13 +15,16 @@ export function fromDayKey(key: string): Date {
   return new Date(y ?? 1970, (m ?? 1) - 1, d ?? 1);
 }
 
-/** Monday-start week (Ryan's pick, 2026-07-08): the day key of the Monday of
- * the week containing `d`. */
-export function weekKey(d: Date): string {
+/** Day of week in `Date.getDay()` convention: 0 = Sunday … 6 = Saturday. */
+export type Weekday = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+
+/** The day key of the first day of the week containing `d`. The week's start
+ * day is a config value so forks can pick their own; the default (Monday) is
+ * `DEFAULT_CONFIG.weekStartsOn` in config.ts. */
+export function weekKey(d: Date, weekStartsOn: Weekday = 1): string {
   const local = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  const dow = local.getDay(); // 0 = Sunday … 6 = Saturday
-  const sinceMonday = (dow + 6) % 7;
-  local.setDate(local.getDate() - sinceMonday);
+  const sinceStart = (local.getDay() - weekStartsOn + 7) % 7;
+  local.setDate(local.getDate() - sinceStart);
   return dayKey(local);
 }
 
