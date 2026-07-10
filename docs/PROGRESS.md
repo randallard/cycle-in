@@ -47,9 +47,13 @@ remotes only) and was restored as `origin`. 31 tests passing. New scope recorded
   public playlists vs OAuth for private ones, per-fork key config — is an open question
   below.)
 
+**2026-07-10 (later): the export/import event bundle is built** — `src/core/bundle.ts`
+(serialize deterministic and diff-clean, envelope-validated parse that imports
+newer-version events losslessly, union by event id) plus Export/Import buttons on the demo
+page. Manual cross-device sync now actually works end to end; 42 tests passing. With this,
+worklist #6 (event-log data model) is fully closed.
+
 **Next build steps, in order:**
-- **Export/import event bundle** — the BV-style manual sync that works with any future
-  transport; union-by-event-id merge, trivially safe per ADR-0003.
 - **The real UI** — the choices page (options list + per-category day/week/month attention +
   category-focus view + done/start/hold/dismiss/bump/log actions), then the item-management
   view, the recent-suggestions review (impressions), and first-run/import. PWA
@@ -104,8 +108,8 @@ From a post-scaffold review session with Ryan; work through in order:
    that settled cadence semantics (strict calendar periods, Monday weeks), due-at-time for
    timed items, the category-balanced selection algorithm (config max, default 10; even split
    on a fresh day shifting toward less-logged categories; day-seeded randomness), one-shot
-   bumps, and backfill-with-"early". The IndexedDB event store landed 2026-07-10; remaining
-   under this item: the export/import bundle (see "Next build steps").
+   bumps, and backfill-with-"early". The IndexedDB event store and the export/import bundle
+   both landed 2026-07-10 — this item is fully closed.
 
 ## UI-flow gaps (2026-07-08 second pass; core-level ones closed by ADR-0003 the same evening)
 
@@ -147,6 +151,15 @@ Found by re-walking the described flow against the docs and the then-current
   compromise, not just a disclosed CVE); not wired in this round.
 
 ## Log
+
+### 2026-07-10 (later) — export/import event bundle
+
+`src/core/bundle.ts`: deterministic serialize (deduped, `(at, id)`-sorted — same event set,
+byte-identical export), envelope-validated parse (newer-version events import losslessly;
+malformed bundles get human-readable errors), `unionEvents`. Demo page grew Export/Import
+buttons with an inline imported-N-of-M status. 42 tests (round-trip, determinism,
+two-device-merge, and self-import-idempotence properties among the 11 new). Full detail:
+[`journal/2026-07-10-2-export-import-event-bundle.md`](journal/2026-07-10-2-export-import-event-bundle.md).
 
 ### 2026-07-10 — week-start config, MIT license, IndexedDB store, YouTube scope
 
