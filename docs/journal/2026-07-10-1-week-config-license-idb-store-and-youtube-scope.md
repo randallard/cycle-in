@@ -52,3 +52,6 @@ build clean.
 
 Left **uncommitted** for Ryan's local review, per his standing rule — `pnpm dev` should show
 the demo persisting across reloads.
+
+*Follow-up: Ryan verified locally ("this runs") and landed as `8bb1a81` (this reference added
+per the journal's self-reference convention — an entry can't name its own commit's hash).*
