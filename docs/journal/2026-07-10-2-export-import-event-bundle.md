@@ -32,3 +32,7 @@ cases for malformed bundles. Lint (strictTypeChecked) and build clean.
 
 Left **uncommitted** for Ryan's local review — the visible test: export from the dev page,
 wipe or don't, re-import, watch the status line say how many events were actually new.
+
+*Follow-up: Ryan verified locally ("imported 0 new of 5") and landed as `d2198c6` (this
+reference added per the journal's self-reference convention — an entry can't name its own
+commit's hash).*
