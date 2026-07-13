@@ -53,12 +53,20 @@ newer-version events losslessly, union by event id) plus Export/Import buttons o
 page. Manual cross-device sync now actually works end to end; 42 tests passing. With this,
 worklist #6 (event-log data model) is fully closed.
 
+**2026-07-10 (evening): the choices page is real.** Two design mockups live in
+`prototypes/` (dev-server-only pages, per Ryan's preference — no Artifacts); Ryan picked
+**direction B ("balance board") completely**. `src/ui/` now implements it against the live
+event store: balance bar, pinned & timed strip, per-category panels with day/week/month
+attention, all action verbs (done / start / hold / release / not-today / bump / change
+cadence / archive / log time at item and category level), add-item form, hash-routed
+category focus, first-run empty state, impressions recording, export/import in the top bar,
+and a Planning panel with an empty state until YouTube lands. Demo seeding removed. Category
+colors are a CVD-validated palette with the warm band reserved for overdue-orange.
+
 **Next build steps, in order:**
-- **The real UI** — the choices page (options list + per-category day/week/month attention +
-  category-focus view + done/start/hold/dismiss/bump/log actions), then the item-management
-  view, the recent-suggestions review (impressions), and first-run/import. PWA
-  manifest/service worker (worklist #5) fits naturally alongside. The **Planning section**
-  (YouTube backlog counts, above) is part of the main page.
+- **Rest of the UI** — the item-management view (rename / recategorize / unarchive — the
+  events exist, archive-verb-only in the UI so far), the recent-suggestions review
+  (impressions are being recorded already), and PWA manifest/service worker (worklist #5).
 - **The branching-video integration** — import with category assignment, the onboarding/review
   screen, and "advance to next node" (`bv-node-advanced` events exist; the config-graph parse
   and UI don't yet).
@@ -151,6 +159,17 @@ Found by re-walking the described flow against the docs and the then-current
   compromise, not just a disclosed CVE); not wired in this round.
 
 ## Log
+
+### 2026-07-10 (evening) — choices-page mockups, direction B chosen, real UI built
+
+Two organization-level mockups (list-first "practice ledger" vs category-first "balance
+board") as dev-server-only pages in `prototypes/` — Ryan rejected the Artifact route and
+set the convention: prototypes live in the repo. He picked **B completely**. `src/ui/`
+now implements the real choices page against the event store: balance bar, strip, category
+panels, every verb, add-item, focus view, first-run state, impressions, Planning empty
+state. Demo seeding removed from `main.ts`. UI-flow-gap items #4 (partially — archive verb
+exists, management view pending), #8 (first-run) advanced. Full detail:
+[`journal/2026-07-10-3-choices-page-ui-direction-b.md`](journal/2026-07-10-3-choices-page-ui-direction-b.md).
 
 ### 2026-07-10 (later) — export/import event bundle
 

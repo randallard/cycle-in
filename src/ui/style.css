@@ -1,0 +1,184 @@
+/* Direction B — "balance board" (Ryan's pick, 2026-07-10, from prototypes/).
+ * Dark-first; light follows the OS theme. Category hues are the CVD-validated
+ * set (blue/aqua/violet…) with the warm band reserved for the overdue status. */
+
+:root {
+  --ground: #14181d;
+  --panel: #1c222a;
+  --panel-2: #232b35;
+  --line: #2b333d;
+  --ink: #e8ebee;
+  --ink-2: #9aa4ae;
+  --ink-3: #6b7682;
+  --overdue: #f09a56;
+  --overdue-bg: #35271a;
+  --track: #2b333d;
+  --cat-1: #3987e5;
+  --cat-2: #199e70;
+  --cat-3: #9085e9;
+  --cat-4: #c98500;
+  --cat-5: #e66767;
+  --cat-6: #d55181;
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --ground: #eef0f2;
+    --panel: #ffffff;
+    --panel-2: #f5f7f9;
+    --line: #dce0e5;
+    --ink: #1b2129;
+    --ink-2: #57616c;
+    --ink-3: #8b949e;
+    --overdue: #b45309;
+    --overdue-bg: #f9ecdd;
+    --track: #e2e6ea;
+    --cat-1: #2a78d6;
+    --cat-2: #1baf7a;
+    --cat-3: #4a3aa7;
+    --cat-4: #eda100;
+    --cat-5: #e34948;
+    --cat-6: #e87ba4;
+  }
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--ground);
+  color: var(--ink);
+  font: 15px/1.5 system-ui, sans-serif;
+  margin: 0;
+}
+button { font: inherit; }
+:focus-visible { outline: 2px solid var(--ink-2); outline-offset: 2px; }
+
+.board { max-width: 68rem; margin: 0 auto; padding: 1.5rem 1.25rem 3rem; }
+.mono { font-family: ui-monospace, "Cascadia Mono", Menlo, monospace; font-variant-numeric: tabular-nums; }
+.micro { text-transform: uppercase; letter-spacing: 0.12em; font-size: 0.66rem; font-weight: 600; color: var(--ink-3); }
+
+/* ── top bar ──────────────────────────────────────────────────────────── */
+.top { display: flex; align-items: baseline; gap: 1rem; flex-wrap: wrap; }
+.top h1 { font-size: 1.05rem; font-weight: 700; margin: 0; letter-spacing: 0.02em; }
+.top h1 a { color: inherit; text-decoration: none; }
+.top .date { color: var(--ink-2); }
+.top nav { margin-left: auto; display: flex; gap: 0.9rem; font-size: 0.8rem; align-items: baseline; }
+.top nav a, .top nav button {
+  color: var(--ink-2); text-decoration: none; background: none; border: none;
+  padding: 0; cursor: pointer; font-size: 0.8rem;
+}
+.top nav a:hover, .top nav button:hover,
+.top nav a:focus-visible, .top nav button:focus-visible { color: var(--ink); text-decoration: underline; }
+.status { margin: 0.5rem 0 0; font-size: 0.8rem; color: var(--ink-2); min-height: 1.2em; }
+.status.error { color: var(--overdue); }
+
+/* ── balance bar ──────────────────────────────────────────────────────── */
+.balance {
+  margin-top: 1.25rem; background: var(--panel); border: 1px solid var(--line);
+  border-radius: 0.75rem; padding: 1.1rem 1.25rem 1.25rem;
+}
+.balance .head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; }
+.balance .head p { margin: 0; color: var(--ink-2); font-size: 0.85rem; }
+.bar { position: relative; height: 14px; border-radius: 7px; background: var(--track); margin-top: 0.9rem; overflow: hidden; }
+.bar .seg { position: absolute; top: 0; bottom: 0; }
+.bar .seg:first-child { border-radius: 7px 0 0 7px; }
+.bar .tick { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--ground); opacity: 0.9; }
+.balance .legend { display: flex; flex-wrap: wrap; gap: 0.6rem 1.5rem; margin-top: 0.9rem; }
+.balance .legend > div { display: grid; grid-template-columns: auto auto; gap: 0.1rem 0.5rem; align-items: center; }
+.dot { width: 0.6rem; height: 0.6rem; border-radius: 50%; flex: none; }
+.balance .cat { font-weight: 600; font-size: 0.85rem; }
+.balance .delta { grid-column: 2; font-size: 0.75rem; color: var(--ink-2); }
+.balance .delta.short { color: var(--overdue); }
+
+/* ── pinned & timed strip ─────────────────────────────────────────────── */
+.strip { display: flex; gap: 0.75rem; margin-top: 1.25rem; flex-wrap: wrap; }
+.card {
+  flex: 1 1 16rem; display: flex; align-items: center; gap: 0.75rem;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 0.75rem;
+  padding: 0.8rem 1rem;
+}
+.card.overdue { border-color: var(--overdue); background: var(--overdue-bg); }
+.card .what { min-width: 0; }
+.card .what b { font-size: 0.95rem; }
+.card .what small { display: block; color: var(--ink-2); font-size: 0.75rem; }
+.card.overdue .what small { color: var(--overdue); font-weight: 600; }
+.card .do { margin-left: auto; }
+
+/* ── panels ───────────────────────────────────────────────────────────── */
+.panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: 0.75rem; margin-top: 1.25rem; }
+.panel {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 0.75rem;
+  padding: 1rem 1rem 0.75rem; border-top: 3px solid var(--line); min-width: 0;
+}
+.panel > header { display: flex; align-items: center; gap: 0.5rem; }
+.panel h2 { font-size: 0.95rem; font-weight: 700; margin: 0; overflow-wrap: anywhere; }
+.panel > header a { margin-left: auto; font-size: 0.72rem; color: var(--ink-3); text-decoration: none; white-space: nowrap; }
+.panel > header a:hover, .panel > header a:focus-visible { color: var(--ink); text-decoration: underline; }
+.stats { display: flex; gap: 1.1rem; margin: 0.6rem 0 0.4rem; padding: 0; list-style: none; }
+.stats li { display: grid; }
+.stats .v { font-size: 0.9rem; font-weight: 600; }
+.stats .k { font-size: 0.62rem; }
+
+.items { list-style: none; margin: 0.4rem 0 0; padding: 0; }
+.item { display: flex; align-items: center; gap: 0.6rem; padding: 0.6rem 0; border-top: 1px solid var(--line); flex-wrap: wrap; }
+.item .name { min-width: 0; flex: 1; }
+.item .name b { font-weight: 500; font-size: 0.9rem; overflow-wrap: anywhere; }
+.item .name small { display: block; color: var(--ink-3); font-size: 0.72rem; }
+.chip {
+  font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.08em;
+  border: 1px solid var(--line); border-radius: 999px; padding: 0.12rem 0.5rem;
+  color: var(--ink-2); white-space: nowrap; flex: none;
+}
+.chip.bumped { border-style: dashed; color: var(--ink); }
+.chip.early { opacity: 0.8; }
+.chip.overdue { background: var(--overdue-bg); border-color: transparent; color: var(--overdue); font-weight: 700; }
+.chip.pinned { border-color: var(--ink-2); color: var(--ink); }
+
+button.do {
+  font-size: 0.75rem; font-weight: 600; line-height: 1; color: var(--ink);
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: 0.4rem;
+  padding: 0.4rem 0.65rem; cursor: pointer; flex: none;
+}
+button.do:hover, button.do:focus-visible { border-color: var(--ink-2); }
+button.more {
+  font-size: 0.8rem; line-height: 1; color: var(--ink-2); background: none;
+  border: 1px solid transparent; border-radius: 0.4rem; padding: 0.4rem 0.45rem; cursor: pointer; flex: none;
+}
+button.more:hover, button.more:focus-visible { border-color: var(--line); color: var(--ink); }
+.allverbs { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 0.35rem; padding-top: 0.55rem; }
+.allverbs button.do { font-weight: 500; font-size: 0.72rem; }
+
+/* inline forms (log time / change cadence / add item) */
+.inline-form {
+  flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center;
+  padding: 0.55rem 0 0.2rem;
+}
+.inline-form label { font-size: 0.75rem; color: var(--ink-2); display: flex; gap: 0.35rem; align-items: center; }
+.inline-form input, .inline-form select {
+  font: inherit; font-size: 0.8rem; color: var(--ink);
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: 0.4rem;
+  padding: 0.35rem 0.5rem; max-width: 9rem;
+}
+.inline-form input[type="number"] { width: 5rem; }
+
+.panel .paneltools { margin: 0.5rem 0 0.25rem; }
+.panel .paneltools button { font-size: 0.72rem; }
+
+/* ── planning ─────────────────────────────────────────────────────────── */
+.panel.planning { border-top-color: var(--ink-3); }
+.panel.planning .empty { color: var(--ink-2); font-size: 0.8rem; margin: 0.6rem 0 0.4rem; }
+.panel.planning .empty a { color: var(--ink-2); }
+
+/* ── empty / first-run state ──────────────────────────────────────────── */
+.firstrun {
+  margin-top: 1.25rem; background: var(--panel); border: 1px solid var(--line);
+  border-radius: 0.75rem; padding: 2rem 1.5rem; text-align: center;
+}
+.firstrun h2 { margin: 0; font-size: 1.15rem; }
+.firstrun p { color: var(--ink-2); max-width: 34rem; margin: 0.5rem auto 1rem; font-size: 0.9rem; }
+.firstrun .inline-form { justify-content: center; }
+
+/* ── footer ───────────────────────────────────────────────────────────── */
+footer.page { margin-top: 1.5rem; color: var(--ink-3); font-size: 0.75rem; display: flex; gap: 1rem; flex-wrap: wrap; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .bar .seg { transition: width 250ms ease, left 250ms ease; }
+}

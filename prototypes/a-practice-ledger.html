@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>cycle-in · A — practice ledger</title>
+</head>
+<body>
+<style>
+  :root {
+    --ground: #f7f6f2;
+    --panel: #fffef9;
+    --ink: #26241f;
+    --ink-2: #6b675e;
+    --ink-3: #96917f;
+    --line: #e3e1d9;
+    --accent: #3d6b4f;
+    --accent-ink: #ffffff;
+    --overdue: #b45309;
+    --overdue-bg: #f7ead9;
+    --cat-music: #2a78d6;
+    --cat-drawing: #1baf7a;
+    --cat-exercise: #4a3aa7;
+    --ring-track: #e7e5dc;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground: #1e1d1a;
+      --panel: #262521;
+      --ink: #ece9e1;
+      --ink-2: #a8a396;
+      --ink-3: #7c7769;
+      --line: #38362f;
+      --accent: #7fae93;
+      --accent-ink: #16211b;
+      --overdue: #e8974f;
+      --overdue-bg: #3a2c1c;
+      --cat-music: #3987e5;
+      --cat-drawing: #199e70;
+      --cat-exercise: #9085e9;
+      --ring-track: #3a3830;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #1e1d1a; --panel: #262521; --ink: #ece9e1; --ink-2: #a8a396;
+    --ink-3: #7c7769; --line: #38362f; --accent: #7fae93; --accent-ink: #16211b;
+    --overdue: #e8974f; --overdue-bg: #3a2c1c;
+    --cat-music: #3987e5; --cat-drawing: #199e70; --cat-exercise: #9085e9;
+    --ring-track: #3a3830;
+  }
+  :root[data-theme="light"] {
+    --ground: #f7f6f2; --panel: #fffef9; --ink: #26241f; --ink-2: #6b675e;
+    --ink-3: #96917f; --line: #e3e1d9; --accent: #3d6b4f; --accent-ink: #ffffff;
+    --overdue: #b45309; --overdue-bg: #f7ead9;
+    --cat-music: #2a78d6; --cat-drawing: #1baf7a; --cat-exercise: #4a3aa7;
+    --ring-track: #e7e5dc;
+  }
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font: 16px/1.55 system-ui, sans-serif;
+    margin: 0;
+  }
+  .page { max-width: 44rem; margin: 0 auto; padding: 2.5rem 1.25rem 4rem; }
+  .serif { font-family: Charter, "Bitstream Charter", Georgia, "Times New Roman", serif; }
+  .mono { font-family: ui-monospace, "Cascadia Mono", Menlo, monospace; font-variant-numeric: tabular-nums; }
+
+  header .eyebrow {
+    text-transform: uppercase; letter-spacing: 0.14em; font-size: 0.7rem;
+    color: var(--ink-3); margin: 0 0 0.35rem;
+  }
+  header h1 {
+    font-size: 2.1rem; line-height: 1.15; margin: 0; font-weight: 500;
+    text-wrap: balance;
+  }
+  header .sub { color: var(--ink-2); margin: 0.5rem 0 0; font-size: 0.95rem; }
+
+  /* attention strip */
+  .attention { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1.75rem 0 0; padding: 0; list-style: none; }
+  .attention a {
+    display: flex; align-items: baseline; gap: 0.5rem;
+    border: 1px solid var(--line); border-radius: 999px;
+    padding: 0.4rem 0.9rem; text-decoration: none; color: inherit;
+    background: var(--panel);
+  }
+  .attention a:hover, .attention a:focus-visible { border-color: var(--accent); }
+  .attention .dot { width: 0.55rem; height: 0.55rem; border-radius: 50%; align-self: center; flex: none; }
+  .attention .cat { font-weight: 600; font-size: 0.9rem; }
+  .attention .mins { color: var(--ink-2); font-size: 0.8rem; }
+  .attention .hint { flex-basis: 100%; color: var(--ink-3); font-size: 0.75rem; margin-top: 0.1rem; }
+
+  /* list */
+  .list { list-style: none; margin: 2rem 0 0; padding: 0; }
+  .row {
+    display: grid; grid-template-columns: 2.25rem 1fr auto; gap: 0 0.9rem;
+    align-items: start; padding: 0.95rem 0.25rem;
+    border-top: 1px solid var(--line);
+  }
+  .row:last-child { border-bottom: 1px solid var(--line); }
+  .row.open { background: var(--panel); border-radius: 0.5rem; padding: 0.95rem 0.75rem; border-color: transparent; }
+  .row.open + .row { border-top-color: transparent; }
+  .ring { grid-row: 1 / span 2; margin-top: 0.15rem; }
+  .name { font-size: 1.2rem; font-weight: 500; margin: 0; }
+  .name a { color: inherit; text-decoration: none; }
+  .name a:hover, .name a:focus-visible { text-decoration: underline; text-underline-offset: 3px; }
+  .meta { color: var(--ink-2); font-size: 0.8rem; margin-top: 0.1rem; display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; }
+  .catlabel { display: inline-flex; align-items: center; gap: 0.35rem; }
+  .catlabel .dot { width: 0.45rem; height: 0.45rem; border-radius: 50%; }
+  .tag {
+    font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.09em;
+    border: 1px solid var(--line); border-radius: 999px; padding: 0.1rem 0.55rem;
+    color: var(--ink-2); white-space: nowrap;
+  }
+  .tag.pinned { border-color: var(--accent); color: var(--accent); }
+  .tag.bumped { border-style: dashed; }
+  .tag.overdue { background: var(--overdue-bg); border-color: transparent; color: var(--overdue); font-weight: 600; }
+  .tag.early { color: var(--ink-3); }
+
+  .verbs { display: flex; gap: 0.4rem; align-items: center; justify-content: end; }
+  .verbs button {
+    font: 600 0.8rem/1 system-ui, sans-serif; color: var(--ink-2);
+    background: none; border: 1px solid var(--line); border-radius: 0.45rem;
+    padding: 0.45rem 0.7rem; cursor: pointer;
+  }
+  .verbs button:hover, .verbs button:focus-visible { border-color: var(--ink-2); color: var(--ink); }
+  .verbs .primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .verbs .primary:hover, .verbs .primary:focus-visible { filter: brightness(1.08); color: var(--accent-ink); }
+  .verbrow {
+    grid-column: 2 / -1; display: flex; flex-wrap: wrap; gap: 0.4rem;
+    margin-top: 0.65rem; padding-top: 0.65rem; border-top: 1px dashed var(--line);
+  }
+  .verbrow button {
+    font: 500 0.8rem/1 system-ui, sans-serif; color: var(--ink-2);
+    background: none; border: 1px solid var(--line); border-radius: 0.45rem;
+    padding: 0.45rem 0.7rem; cursor: pointer;
+  }
+  .verbrow button:hover, .verbrow button:focus-visible { border-color: var(--ink-2); color: var(--ink); }
+
+  /* planning */
+  .planning { margin-top: 3rem; }
+  .planning h2 { font-size: 1.05rem; font-weight: 600; margin: 0; }
+  .planning .lede { color: var(--ink-2); font-size: 0.85rem; margin: 0.25rem 0 1rem; }
+  .playlist {
+    display: grid; grid-template-columns: 1fr auto; gap: 0.15rem 1rem;
+    padding: 0.75rem 0; border-top: 1px solid var(--line); align-items: center;
+  }
+  .playlist:last-of-type { border-bottom: 1px solid var(--line); }
+  .playlist .pname { font-weight: 500; }
+  .playlist .pmeta { color: var(--ink-2); font-size: 0.8rem; grid-column: 1; }
+  .playlist .count { text-align: right; }
+  .playlist .count b { font-size: 1.15rem; font-weight: 600; }
+  .playlist .count span { display: block; color: var(--ink-3); font-size: 0.7rem; }
+  .playlist .meter { grid-column: 1 / -1; height: 4px; border-radius: 2px; background: var(--ring-track); overflow: hidden; margin-top: 0.35rem; }
+  .playlist .meter i { display: block; height: 100%; border-radius: 2px; }
+
+  footer { margin-top: 3rem; color: var(--ink-3); font-size: 0.75rem; display: flex; gap: 1rem; flex-wrap: wrap; }
+  footer a { color: var(--ink-2); }
+
+  @media (max-width: 540px) {
+    .row { grid-template-columns: 2.25rem 1fr; }
+    .verbs { grid-column: 2; justify-content: start; margin-top: 0.5rem; }
+    header h1 { font-size: 1.7rem; }
+  }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  @media (prefers-reduced-motion: no-preference) {
+    .row.open { transition: background 200ms ease; }
+  }
+</style>
+
+<div class="page">
+  <header>
+    <p class="eyebrow">cycle-in · Friday</p>
+    <h1 class="serif">July 10 — eight things worth your time</h1>
+    <p class="sub">8 of 23 items in rotation are up today. Each ring shows how far through its cycle an item is — a full ring is due.</p>
+  </header>
+
+  <ul class="attention" aria-label="Attention by category — today, this week, this month">
+    <li><a href="#focus-music"><span class="dot" style="background:var(--cat-music)"></span><span class="cat">music</span><span class="mins mono">25m · 3h10 · 11h00</span></a></li>
+    <li><a href="#focus-drawing"><span class="dot" style="background:var(--cat-drawing)"></span><span class="cat">drawing</span><span class="mins mono">0m · 1h05 · 6h20</span></a></li>
+    <li><a href="#focus-exercise"><span class="dot" style="background:var(--cat-exercise)"></span><span class="cat">exercise</span><span class="mins mono">0m · 2h30 · 9h45</span></a></li>
+    <li class="hint">minutes today · this week · this month — open a category to focus on it</li>
+  </ul>
+
+  <ul class="list">
+    <li class="row">
+      <svg class="ring" width="28" height="28" viewBox="0 0 28 28" role="img" aria-label="Pinned — stays on the list">
+        <circle cx="14" cy="14" r="11" fill="none" stroke="var(--accent)" stroke-width="2.5"/>
+        <circle cx="14" cy="14" r="4" fill="var(--accent)"/>
+      </svg>
+      <div>
+        <p class="name serif"><a href="#piano">Piano</a></p>
+        <p class="meta"><span class="catlabel"><span class="dot" style="background:var(--cat-music)"></span>music · piano</span> monthly <span class="tag pinned">pinned</span></p>
+      </div>
+      <div class="verbs"><button class="primary">Done</button><button>Log time</button><button aria-label="More actions">⋯</button></div>
+    </li>
+
+    <li class="row">
+      <svg class="ring" width="28" height="28" viewBox="0 0 28 28" role="img" aria-label="Due — bumped for today">
+        <circle cx="14" cy="14" r="11" fill="none" stroke="var(--ring-track)" stroke-width="2.5"/>
+        <circle cx="14" cy="14" r="11" fill="none" stroke="var(--cat-drawing)" stroke-width="2.5"
+          stroke-dasharray="69.1" stroke-dashoffset="0" transform="rotate(-90 14 14)" stroke-linecap="round"/>
+      </svg>
+      <div>
+        <p class="name serif"><a href="#figure-drawing">Figure drawing</a></p>
+        <p class="meta"><span class="catlabel"><span class="dot" style="background:var(--cat-drawing)"></span>drawing · figures</span> weekly <span class="tag bumped">bumped for today</span></p>
+      </div>
+      <div class="verbs"><button class="primary">Done</button><button>Log time</button><button aria-label="More actions">⋯</button></div>
+    </li>
+
+    <li class="row">
+      <svg class="ring" width="28" height="28" viewBox="0 0 28 28" role="img" aria-label="Overdue — its 7:00 time has passed">
+        <circle cx="14" cy="14" r="11" fill="none" stroke="var(--overdue)" stroke-width="2.5"/>
+        <path d="M14 8 v6 l4 3" fill="none" stroke="var(--overdue)" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <div>
+        <p class="name serif"><a href="#run">Run</a></p>
+        <p class="meta"><span class="catlabel"><span class="dot" style="background:var(--cat-exercise)"></span>exercise</span> daily · 7:00 <span class="tag overdue">7:00 went by</span></p>
+      </div>
+      <div class="verbs"><button class="primary">Done</button><button>Log time</button><button aria-label="More actions">⋯</button></div>
+    </li>
+
+    <li class="row open">
+      <svg class="ring" width="28" height="28" viewBox="0 0 28 28" role="img" aria-label="Due today">
+        <circle cx="14" cy="14" r="11" fill="none" stroke="var(--ring-track)" stroke-width="2.5"/>
+        <circle cx="14" cy="14" r="11" fill="none" stroke="var(--cat-music)" stroke-width="2.5"
+          stroke-dasharray="69.1" stroke-dashoffset="0" transform="rotate(-90 14 14)" stroke-linecap="round"/>
+      </svg>
+      <div>
+        <p class="name serif"><a href="#cello">Cello</a></p>
+        <p class="meta"><span class="catlabel"><span class="dot" style="background:var(--cat-music)"></span>music · cello</span> daily · due</p>
+      </div>
+      <div class="verbs"><button class="primary">Done</button><button>Start</button></div>
+      <div class="verbrow" aria-label="All actions for Cello">
+        <button>Log time…</button><button>Hold on list</button><button>Not today</button><button>Bump for tomorrow</button><button>Change cadence…</button><button>Archive…</button>
+      </div>
+    </li>
+
+    <li class="row">
+      <svg class="ring" width="28" height="28" viewBox="0 0 28 28" role="img" aria-label="Due this week">
+        <circle cx="14" cy="14" r="11" fill="none" stroke="var(--ring-track)" stroke-width="2.5"/>
+        <circle cx="14" cy="14" r="11" fill="none" stroke="var(--cat-drawing)" stroke-width="2.5"
+          stroke-dasharray="69.1" stroke-dashoffset="0" transform="rotate(-90 14 14)" stroke-linecap="round"/>
+      </svg>
+      <div>
+        <p class="name serif"><a href="#sketch">Sketch practice</a></p>
+        <p class="meta"><span class="catlabel"><span class="dot" style="background:var(--cat-drawing)"></span>drawing</span> weekly · due</p>
+      </div>
+      <div class="verbs"><button class="primary">Done</button><button>Log time</button><button aria-label="More actions">⋯</button></div>
+    </li>
+
+    <li class="row">
+      <svg class="ring" width="28" height="28" viewBox="0 0 28 28" role="img" aria-label="Due today">
+        <circle cx="14" cy="14" r="11" fill="none" stroke="var(--ring-track)" stroke-width="2.5"/>
+        <circle cx="14" cy="14" r="11" fill="none" stroke="var(--cat-exercise)" stroke-width="2.5"
+          stroke-dasharray="69.1" stroke-dashoffset="0" transform="rotate(-90 14 14)" stroke-linecap="round"/>
+      </svg>
+      <div>
+        <p class="name serif"><a href="#stretching">Stretching</a></p>
+        <p class="meta"><span class="catlabel"><span class="dot" style="background:var(--cat-exercise)"></span>exercise · mobility</span> daily · due</p>
+      </div>
+      <div class="verbs"><button class="primary">Done</button><button>Log time</button><button aria-label="More actions">⋯</button></div>
+    </li>
+
+    <li class="row">
+      <svg class="ring" width="28" height="28" viewBox="0 0 28 28" role="img" aria-label="Halfway through its month">
+        <circle cx="14" cy="14" r="11" fill="none" stroke="var(--ring-track)" stroke-width="2.5"/>
+        <circle cx="14" cy="14" r="11" fill="none" stroke="var(--cat-music)" stroke-width="2.5"
+          stroke-dasharray="24 45.1" transform="rotate(-90 14 14)" stroke-linecap="round"/>
+      </svg>
+      <div>
+        <p class="name serif"><a href="#scales">Scales &amp; arpeggios</a></p>
+        <p class="meta"><span class="catlabel"><span class="dot" style="background:var(--cat-music)"></span>music</span> daily · due</p>
+      </div>
+      <div class="verbs"><button class="primary">Done</button><button>Log time</button><button aria-label="More actions">⋯</button></div>
+    </li>
+
+    <li class="row">
+      <svg class="ring" width="28" height="28" viewBox="0 0 28 28" role="img" aria-label="Early — due at 21:00">
+        <circle cx="14" cy="14" r="11" fill="none" stroke="var(--ring-track)" stroke-width="2.5" stroke-dasharray="3 4"/>
+      </svg>
+      <div>
+        <p class="name serif"><a href="#theory">Music theory video</a></p>
+        <p class="meta"><span class="catlabel"><span class="dot" style="background:var(--cat-music)"></span>music · theory</span> daily · 21:00 <span class="tag early">early — doing it now still counts</span></p>
+      </div>
+      <div class="verbs"><button class="primary">Done</button><button>Log time</button><button aria-label="More actions">⋯</button></div>
+    </li>
+  </ul>
+
+  <section class="planning">
+    <h2 class="serif">Planning — waiting to cycle in</h2>
+    <p class="lede">Videos in your YouTube playlists that aren't in the rotation yet. Review one to give it a category and a cadence.</p>
+
+    <div class="playlist">
+      <p class="pname">Cello: Beginner to Bach</p>
+      <p class="count"><b class="mono">4</b><span>of 12 to cycle in</span></p>
+      <p class="pmeta">YouTube · feeds music · cello</p>
+      <div class="meter"><i style="width:67%; background:var(--cat-music)"></i></div>
+    </div>
+    <div class="playlist">
+      <p class="pname">Drawing Fundamentals</p>
+      <p class="count"><b class="mono">9</b><span>of 28 to cycle in</span></p>
+      <p class="pmeta">YouTube · feeds drawing</p>
+      <div class="meter"><i style="width:68%; background:var(--cat-drawing)"></i></div>
+    </div>
+    <div class="playlist">
+      <p class="pname">Kettlebell Form Basics</p>
+      <p class="count"><b class="mono">6</b><span>of 6 to cycle in</span></p>
+      <p class="pmeta">YouTube · feeds exercise — nothing imported yet</p>
+      <div class="meter"><i style="width:0%; background:var(--cat-exercise)"></i></div>
+    </div>
+  </section>
+
+  <footer>
+    <span>47 events in the log</span>
+    <a href="#export">Export events</a>
+    <a href="#import">Import bundle…</a>
+    <a href="#items">Manage items</a>
+    <a href="#history">Recent suggestions</a>
+  </footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>cycle-in · prototypes</title>
+<style>
+  :root {
+    --ground: #f4f4f5; --panel: #ffffff; --ink: #232326; --ink-2: #6a6a70;
+    --line: #e0e0e3; --accent: #3d6b4f;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground: #19191c; --panel: #222226; --ink: #e9e9ec; --ink-2: #9d9da4;
+      --line: #35353a; --accent: #7fae93;
+    }
+  }
+  body { background: var(--ground); color: var(--ink); font: 16px/1.55 system-ui, sans-serif; margin: 0; }
+  .page { max-width: 40rem; margin: 0 auto; padding: 3rem 1.25rem; }
+  h1 { font-size: 1.4rem; margin: 0; }
+  .lede { color: var(--ink-2); margin: 0.5rem 0 2rem; font-size: 0.95rem; }
+  a.proto {
+    display: block; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 0.75rem; padding: 1.1rem 1.25rem; margin-bottom: 0.75rem;
+    color: inherit; text-decoration: none;
+  }
+  a.proto:hover, a.proto:focus-visible { border-color: var(--accent); }
+  a.proto b { font-size: 1.05rem; }
+  a.proto p { margin: 0.3rem 0 0; color: var(--ink-2); font-size: 0.85rem; }
+  .note { margin-top: 2rem; color: var(--ink-2); font-size: 0.8rem; border-top: 1px solid var(--line); padding-top: 1rem; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>cycle-in — choices-page prototypes</h1>
+  <p class="lede">Static design mockups, same demo data in both. Dev-server only — not part of
+  the production build. Both render in light and dark (they follow your OS theme).
+  <b>Decision (Ryan, 2026-07-10): direction B, completely</b> — kept here for the record;
+  the real UI in <code>src/ui/</code> is built from B.</p>
+
+  <a class="proto" href="./a-practice-ledger.html">
+    <b>A — Practice ledger</b>
+    <p>One calm list is the hero: a daily practice sheet with serif item names, quiet verbs,
+    and a per-item <em>cadence ring</em> showing how far through its period each item is.
+    Attention chips up top; Planning as a footer section. Light-first.</p>
+  </a>
+
+  <a class="proto" href="./b-balance-board.html">
+    <b>B — Balance board</b>
+    <p>Category-first: a <em>balance bar</em> shows today's attention split against an
+    even-split target, then per-category panels each carry their own day/week/month minutes
+    and due items. Pinned and timed items float in a strip; Planning is a panel. Dark-first,
+    denser, tool-like.</p>
+  </a>
+
+  <p class="note">Things to react to: list-first (A) vs category-first (B) organization ·
+  the cadence-ring vs balance-bar signature · where Planning lives · verb placement (quiet
+  row under an opened item in A, inline per-panel in B) · overall temperature (paper vs
+  instrument panel).</p>
+</div>
+</body>
+</html>

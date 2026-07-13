@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>cycle-in · B — balance board</title>
+</head>
+<body>
+<style>
+  :root {
+    --ground: #14181d;
+    --panel: #1c222a;
+    --panel-2: #232b35;
+    --line: #2b333d;
+    --ink: #e8ebee;
+    --ink-2: #9aa4ae;
+    --ink-3: #6b7682;
+    --overdue: #f09a56;
+    --overdue-bg: #35271a;
+    --cat-music: #3987e5;
+    --cat-drawing: #199e70;
+    --cat-exercise: #9085e9;
+    --track: #2b333d;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --ground: #eef0f2; --panel: #ffffff; --panel-2: #f5f7f9; --line: #dce0e5;
+      --ink: #1b2129; --ink-2: #57616c; --ink-3: #8b949e;
+      --overdue: #b45309; --overdue-bg: #f9ecdd;
+      --cat-music: #2a78d6; --cat-drawing: #1baf7a; --cat-exercise: #4a3aa7;
+      --track: #e2e6ea;
+    }
+  }
+  :root[data-theme="light"] {
+    --ground: #eef0f2; --panel: #ffffff; --panel-2: #f5f7f9; --line: #dce0e5;
+    --ink: #1b2129; --ink-2: #57616c; --ink-3: #8b949e;
+    --overdue: #b45309; --overdue-bg: #f9ecdd;
+    --cat-music: #2a78d6; --cat-drawing: #1baf7a; --cat-exercise: #4a3aa7;
+    --track: #e2e6ea;
+  }
+  :root[data-theme="dark"] {
+    --ground: #14181d; --panel: #1c222a; --panel-2: #232b35; --line: #2b333d;
+    --ink: #e8ebee; --ink-2: #9aa4ae; --ink-3: #6b7682;
+    --overdue: #f09a56; --overdue-bg: #35271a;
+    --cat-music: #3987e5; --cat-drawing: #199e70; --cat-exercise: #9085e9;
+    --track: #2b333d;
+  }
+
+  body { background: var(--ground); color: var(--ink); font: 15px/1.5 system-ui, sans-serif; margin: 0; }
+  .board { max-width: 68rem; margin: 0 auto; padding: 1.5rem 1.25rem 3rem; }
+  .mono { font-family: ui-monospace, "Cascadia Mono", Menlo, monospace; font-variant-numeric: tabular-nums; }
+  .micro { text-transform: uppercase; letter-spacing: 0.12em; font-size: 0.66rem; font-weight: 600; color: var(--ink-3); }
+
+  /* top bar */
+  .top { display: flex; align-items: baseline; gap: 1rem; flex-wrap: wrap; }
+  .top h1 { font-size: 1.05rem; font-weight: 700; margin: 0; letter-spacing: 0.02em; }
+  .top .date { color: var(--ink-2); }
+  .top nav { margin-left: auto; display: flex; gap: 1rem; font-size: 0.8rem; }
+  .top nav a { color: var(--ink-2); text-decoration: none; }
+  .top nav a:hover, .top nav a:focus-visible { color: var(--ink); text-decoration: underline; }
+
+  /* balance bar — the signature */
+  .balance { margin-top: 1.5rem; background: var(--panel); border: 1px solid var(--line); border-radius: 0.75rem; padding: 1.1rem 1.25rem 1.25rem; }
+  .balance .head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; }
+  .balance .head p { margin: 0; color: var(--ink-2); font-size: 0.85rem; }
+  .bar { position: relative; height: 14px; border-radius: 7px; background: var(--track); margin-top: 0.9rem; overflow: hidden; }
+  .bar .seg { position: absolute; top: 0; bottom: 0; border-radius: 7px; }
+  .bar .tick { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--ground); opacity: 0.9; }
+  .balance .legend { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin-top: 0.9rem; }
+  .balance .legend > div { display: grid; grid-template-columns: auto 1fr; gap: 0.15rem 0.5rem; align-items: center; }
+  .balance .dot { width: 0.6rem; height: 0.6rem; border-radius: 50%; }
+  .balance .cat { font-weight: 600; font-size: 0.85rem; }
+  .balance .delta { grid-column: 2; font-size: 0.75rem; color: var(--ink-2); }
+  .balance .delta.short { color: var(--overdue); }
+
+  /* pinned & timed strip */
+  .strip { display: flex; gap: 0.75rem; margin-top: 1.25rem; flex-wrap: wrap; }
+  .card {
+    flex: 1 1 16rem; display: flex; align-items: center; gap: 0.75rem;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 0.75rem;
+    padding: 0.8rem 1rem;
+  }
+  .card.overdue { border-color: var(--overdue); background: var(--overdue-bg); }
+  .card .what { min-width: 0; }
+  .card .what b { font-size: 0.95rem; }
+  .card .what small { display: block; color: var(--ink-2); font-size: 0.75rem; }
+  .card.overdue .what small { color: var(--overdue); font-weight: 600; }
+  .card button { margin-left: auto; }
+
+  /* panels */
+  .panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 0.75rem; margin-top: 1.25rem; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 0.75rem; padding: 1rem 1rem 0.75rem; border-top: 3px solid var(--line); }
+  .panel.music { border-top-color: var(--cat-music); }
+  .panel.drawing { border-top-color: var(--cat-drawing); }
+  .panel.exercise { border-top-color: var(--cat-exercise); }
+  .panel header { display: flex; align-items: baseline; gap: 0.5rem; }
+  .panel h2 { font-size: 0.95rem; font-weight: 700; margin: 0; }
+  .panel header a { margin-left: auto; font-size: 0.72rem; color: var(--ink-3); text-decoration: none; }
+  .panel header a:hover, .panel header a:focus-visible { color: var(--ink); text-decoration: underline; }
+  .stats { display: flex; gap: 1.1rem; margin: 0.6rem 0 0.4rem; padding: 0; list-style: none; }
+  .stats li { display: grid; }
+  .stats .v { font-size: 0.9rem; font-weight: 600; }
+  .stats .k { font-size: 0.62rem; }
+
+  .items { list-style: none; margin: 0.4rem 0 0; padding: 0; }
+  .item { display: flex; align-items: center; gap: 0.6rem; padding: 0.6rem 0; border-top: 1px solid var(--line); }
+  .item .name { min-width: 0; }
+  .item .name b { font-weight: 500; font-size: 0.9rem; }
+  .item .name small { display: block; color: var(--ink-3); font-size: 0.72rem; }
+  .chip {
+    margin-left: auto; font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.08em;
+    border: 1px solid var(--line); border-radius: 999px; padding: 0.12rem 0.5rem;
+    color: var(--ink-2); white-space: nowrap; flex: none;
+  }
+  .chip.bumped { border-style: dashed; color: var(--ink); }
+  .chip.early { opacity: 0.8; }
+
+  button.do {
+    font: 600 0.75rem/1 system-ui, sans-serif; color: var(--ink);
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 0.4rem;
+    padding: 0.4rem 0.65rem; cursor: pointer; flex: none;
+  }
+  button.do:hover, button.do:focus-visible { border-color: var(--ink-2); }
+  .item.openverbs { flex-wrap: wrap; }
+  .allverbs { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 0.35rem; padding-top: 0.55rem; }
+  .allverbs button { font-size: 0.72rem; }
+
+  /* planning panel */
+  .panel.planning { border-top-color: var(--ink-3); }
+  .play { padding: 0.6rem 0; border-top: 1px solid var(--line); }
+  .play .prow { display: flex; align-items: baseline; gap: 0.5rem; }
+  .play b { font-weight: 500; font-size: 0.9rem; }
+  .play .n { margin-left: auto; font-weight: 700; }
+  .play small { display: block; color: var(--ink-3); font-size: 0.72rem; margin-top: 0.05rem; }
+  .play .meter { height: 4px; border-radius: 2px; background: var(--track); margin-top: 0.45rem; overflow: hidden; }
+  .play .meter i { display: block; height: 100%; border-radius: 2px; }
+  .panel.planning .foot { margin: 0.75rem 0 0.25rem; font-size: 0.75rem; color: var(--ink-2); }
+  .panel.planning .foot a { color: var(--ink-2); }
+
+  footer.page { margin-top: 1.5rem; color: var(--ink-3); font-size: 0.75rem; display: flex; gap: 1rem; flex-wrap: wrap; }
+  :focus-visible { outline: 2px solid var(--ink-2); outline-offset: 2px; }
+</style>
+
+<div class="board">
+  <div class="top">
+    <h1>cycle-in</h1>
+    <span class="date">Fri, Jul 10 · 8 up now</span>
+    <nav><a href="#export">Export events</a><a href="#import">Import bundle…</a><a href="#items">Manage items</a></nav>
+  </div>
+
+  <section class="balance" aria-label="Today's attention balance">
+    <div class="head">
+      <span class="micro">Today's balance</span>
+      <p>All 25 logged minutes are music — the list below is already weighting drawing and exercise up.</p>
+    </div>
+    <div class="bar" role="img" aria-label="Stacked bar: music 25 minutes, drawing 0, exercise 0; ticks mark an even three-way split">
+      <span class="seg" style="left:0; width:100%; background:var(--cat-music)"></span>
+      <span class="tick" style="left:33.3%"></span>
+      <span class="tick" style="left:66.6%"></span>
+    </div>
+    <div class="legend">
+      <div><span class="dot" style="background:var(--cat-music)"></span><span class="cat">music</span><span class="delta mono">25m today · 3h10 wk · 11h mo</span></div>
+      <div><span class="dot" style="background:var(--cat-drawing)"></span><span class="cat">drawing</span><span class="delta short mono">0m today · 1h05 wk · 6h20 mo</span></div>
+      <div><span class="dot" style="background:var(--cat-exercise)"></span><span class="cat">exercise</span><span class="delta short mono">0m today · 2h30 wk · 9h45 mo</span></div>
+    </div>
+  </section>
+
+  <div class="strip">
+    <div class="card">
+      <svg width="16" height="16" viewBox="0 0 16 16" role="img" aria-label="Pinned"><circle cx="8" cy="8" r="6" fill="none" stroke="var(--ink-2)" stroke-width="2"/><circle cx="8" cy="8" r="2.4" fill="var(--ink-2)"/></svg>
+      <span class="what"><b>Piano</b><small>music · piano — pinned until you release it</small></span>
+      <button class="do">Done</button>
+    </div>
+    <div class="card overdue">
+      <svg width="16" height="16" viewBox="0 0 16 16" role="img" aria-label="Past its time"><circle cx="8" cy="8" r="6.5" fill="none" stroke="var(--overdue)" stroke-width="1.8"/><path d="M8 4.5 v3.8 l2.6 1.9" fill="none" stroke="var(--overdue)" stroke-width="1.6" stroke-linecap="round"/></svg>
+      <span class="what"><b>Run</b><small>daily at 7:00 — it went by</small></span>
+      <button class="do">Done</button>
+    </div>
+  </div>
+
+  <div class="panels">
+    <section class="panel music">
+      <header><span class="dot" style="width:.6rem;height:.6rem;border-radius:50%;background:var(--cat-music)"></span><h2>music</h2><a href="#focus-music">focus →</a></header>
+      <ul class="stats mono" aria-label="music minutes">
+        <li><span class="v">25m</span><span class="k micro">today</span></li>
+        <li><span class="v">3h10</span><span class="k micro">week</span></li>
+        <li><span class="v">11h00</span><span class="k micro">month</span></li>
+      </ul>
+      <ul class="items">
+        <li class="item"><button class="do">Done</button><span class="name"><b>Cello</b><small>daily · due</small></span></li>
+        <li class="item"><button class="do">Done</button><span class="name"><b>Scales &amp; arpeggios</b><small>daily · due</small></span></li>
+        <li class="item"><button class="do">Done</button><span class="name"><b>Music theory video</b><small>daily · 21:00</small></span><span class="chip early">early</span></li>
+      </ul>
+    </section>
+
+    <section class="panel drawing">
+      <header><span class="dot" style="width:.6rem;height:.6rem;border-radius:50%;background:var(--cat-drawing)"></span><h2>drawing</h2><a href="#focus-drawing">focus →</a></header>
+      <ul class="stats mono" aria-label="drawing minutes">
+        <li><span class="v">0m</span><span class="k micro">today</span></li>
+        <li><span class="v">1h05</span><span class="k micro">week</span></li>
+        <li><span class="v">6h20</span><span class="k micro">month</span></li>
+      </ul>
+      <ul class="items">
+        <li class="item openverbs">
+          <button class="do">Done</button>
+          <span class="name"><b>Figure drawing</b><small>weekly · figures</small></span>
+          <span class="chip bumped">bumped</span>
+          <span class="allverbs" aria-label="All actions for Figure drawing">
+            <button class="do">Start</button><button class="do">Log time…</button><button class="do">Hold on list</button><button class="do">Not today</button><button class="do">Change cadence…</button><button class="do">Archive…</button>
+          </span>
+        </li>
+        <li class="item"><button class="do">Done</button><span class="name"><b>Sketch practice</b><small>weekly · due</small></span></li>
+      </ul>
+    </section>
+
+    <section class="panel exercise">
+      <header><span class="dot" style="width:.6rem;height:.6rem;border-radius:50%;background:var(--cat-exercise)"></span><h2>exercise</h2><a href="#focus-exercise">focus →</a></header>
+      <ul class="stats mono" aria-label="exercise minutes">
+        <li><span class="v">0m</span><span class="k micro">today</span></li>
+        <li><span class="v">2h30</span><span class="k micro">week</span></li>
+        <li><span class="v">9h45</span><span class="k micro">month</span></li>
+      </ul>
+      <ul class="items">
+        <li class="item"><button class="do">Done</button><span class="name"><b>Stretching</b><small>daily · mobility · due</small></span></li>
+      </ul>
+    </section>
+
+    <section class="panel planning">
+      <header><h2>planning</h2><a href="#planning">review →</a></header>
+      <p style="margin:0.4rem 0 0.2rem; font-size:0.78rem; color:var(--ink-2)">Waiting in your YouTube playlists, not yet cycled in.</p>
+      <div class="play">
+        <div class="prow"><b>Cello: Beginner to Bach</b><span class="n mono">4</span></div>
+        <small>of 12 · feeds music · cello</small>
+        <div class="meter"><i style="width:67%; background:var(--cat-music)"></i></div>
+      </div>
+      <div class="play">
+        <div class="prow"><b>Drawing Fundamentals</b><span class="n mono">9</span></div>
+        <small>of 28 · feeds drawing</small>
+        <div class="meter"><i style="width:68%; background:var(--cat-drawing)"></i></div>
+      </div>
+      <div class="play">
+        <div class="prow"><b>Kettlebell Form Basics</b><span class="n mono">6</span></div>
+        <small>of 6 · feeds exercise — nothing imported yet</small>
+        <div class="meter"><i style="width:0%; background:var(--cat-exercise)"></i></div>
+      </div>
+      <p class="foot"><a href="#connect">Connect another playlist…</a></p>
+    </section>
+  </div>
+
+  <footer class="page">
+    <span>47 events in the log</span>
+    <span>list capped at 10 · seeded by the day, stable until midnight</span>
+    <a href="#history" style="color:var(--ink-2)">Recent suggestions</a>
+  </footer>
+</div>
+</body>
+</html>
