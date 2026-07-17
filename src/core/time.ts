@@ -32,6 +32,10 @@ export function monthKey(d: Date): string {
   return dayKey(d).slice(0, 7); // "YYYY-MM"
 }
 
+export function yearKey(d: Date): string {
+  return dayKey(d).slice(0, 4); // "YYYY"
+}
+
 /** Is the local time-of-day of `now` at or past hour:minute? */
 export function timeHasPassed(
   now: Date,

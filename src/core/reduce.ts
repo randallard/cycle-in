@@ -128,6 +128,7 @@ export function reduce(events: readonly CycleEvent[]): State {
           category: e.category,
           effectiveDay: e.effectiveDate ?? dayKey(new Date(e.at)),
           ...(e.subCategory !== undefined ? { subCategory: e.subCategory } : {}),
+          ...(e.tags !== undefined && e.tags.length > 0 ? { tags: e.tags } : {}),
           ...(e.itemId !== undefined ? { itemId: e.itemId } : {}),
           ...(e.minutes !== undefined ? { minutes: e.minutes } : {}),
           ...(e.reps !== undefined ? { reps: e.reps } : {}),
@@ -143,6 +144,10 @@ export function reduce(events: readonly CycleEvent[]): State {
           const p = e.patch;
           if (p.category !== undefined) entry.category = p.category;
           if (p.subCategory !== undefined) entry.subCategory = p.subCategory;
+          if (p.tags !== undefined) {
+            if (p.tags.length > 0) entry.tags = p.tags;
+            else delete entry.tags;
+          }
           if (p.minutes !== undefined) entry.minutes = p.minutes;
           if (p.reps !== undefined) entry.reps = p.reps;
           if (p.notes !== undefined) entry.notes = p.notes;

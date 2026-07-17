@@ -3,9 +3,16 @@ import fc from "fast-check";
 import type { CycleEvent } from "./events";
 import { reduce } from "./reduce";
 import { doneThisPeriod, isDue, isOverdueForTime, isUpcoming } from "./cadence";
-import { minutesByCategory } from "./rollup";
+import {
+  minutesByCategory,
+  minutesByTag,
+  minutesSeries,
+  periodKey,
+  periodStarts,
+} from "./rollup";
+import type { Period } from "./rollup";
 import { selectOptions } from "./select";
-import { fromDayKey, seededShuffle, weekKey } from "./time";
+import { dayKey, fromDayKey, seededShuffle, weekKey } from "./time";
 import type { Weekday } from "./time";
 import type { Cadence, State } from "./types";
 
@@ -63,7 +70,8 @@ function builder() {
       category: string,
       minutes: number,
       effectiveDate: string,
-      subCategory?: string
+      subCategory?: string,
+      tags?: string[]
     ) =>
       push({
         ...base(),
@@ -73,10 +81,11 @@ function builder() {
         minutes,
         effectiveDate,
         ...(subCategory !== undefined ? { subCategory } : {}),
+        ...(tags !== undefined ? { tags } : {}),
       }),
     correct: (
       targetEntryId: string,
-      patch: { minutes?: number; category?: string }
+      patch: { minutes?: number; category?: string; tags?: string[] }
     ) => push({ ...base(), kind: "log-corrected", targetEntryId, patch }),
     retract: (targetEventId: string) =>
       push({ ...base(), kind: "event-retracted", targetEventId }),
@@ -124,6 +133,29 @@ describe("reduce", () => {
     expect(s.logEntries[0]).toMatchObject({ minutes: 40, category: "drawing" });
   });
 
+  it("tags ride time-logged entries; [] normalizes to absent", () => {
+    const b = builder();
+    b.log("bales", "exercise", 180, "2026-07-12", undefined, [
+      "farm work",
+      "outdoors",
+    ]);
+    b.log("bare", "music", 20, "2026-07-12", undefined, []);
+    const s = reduce(b.events);
+    const bales = s.logEntries.find((e) => e.id === "bales")!;
+    const bare = s.logEntries.find((e) => e.id === "bare")!;
+    expect(bales.tags).toEqual(["farm work", "outdoors"]);
+    expect(bare.tags).toBeUndefined();
+  });
+
+  it("log-corrected replaces the tag list; [] clears it", () => {
+    const b = builder();
+    b.log("l1", "exercise", 60, "2026-07-12", undefined, ["farm work"]);
+    b.correct("l1", { tags: ["outdoors"] });
+    expect(reduce(b.events).logEntries[0]!.tags).toEqual(["outdoors"]);
+    b.correct("l1", { tags: [] });
+    expect(reduce(b.events).logEntries[0]!.tags).toBeUndefined();
+  });
+
   it("impressions are deduped per item per day", () => {
     const b = builder();
     b.addItem("x", "c");
@@ -155,7 +187,9 @@ describe("reduce", () => {
         b.addItem("b", "exercise", { kind: "weekly" });
         b.done("a", "2026-07-07");
         b.hold("b");
-        b.log("l1", "music", 10 + (extra % 50), "2026-07-08");
+        b.log("l1", "music", 10 + (extra % 50), "2026-07-08", undefined, [
+          "practice",
+        ]);
         const done = b.done("b", "2026-07-08");
         b.bump("a", "2026-07-09");
         if (extra % 2 === 0) b.retract(done.id);
@@ -443,5 +477,103 @@ describe("rollups", () => {
     const s = reduce(b.events);
     const thisWeek = minutesByCategory(s.logEntries, "week", new Date(2026, 6, 8));
     expect(thisWeek["music"]).toBe(45);
+  });
+
+  it("year period rolls whole calendar years together", () => {
+    const b = builder();
+    b.log("jan", "exercise", 60, "2026-01-03");
+    b.log("jul", "exercise", 90, "2026-07-08");
+    b.log("prev", "exercise", 999, "2025-12-31");
+    const s = reduce(b.events);
+    const thisYear = minutesByCategory(s.logEntries, "year", NOON);
+    expect(thisYear["exercise"]).toBe(150);
+  });
+
+  it("minutesByTag counts an entry toward each of its tags (overlap is fine)", () => {
+    const b = builder();
+    b.log("bales", "exercise", 180, TODAY, undefined, ["farm work", "outdoors"]);
+    b.log("run", "exercise", 30, TODAY, undefined, ["outdoors"]);
+    b.log("untagged", "music", 20, TODAY);
+    const s = reduce(b.events);
+    const tags = minutesByTag(s.logEntries, "day", NOON);
+    expect(tags).toEqual({ "farm work": 180, outdoors: 210 });
+  });
+
+  it("PROPERTY: series buckets partition the in-range total, any period", () => {
+    const periods: Period[] = ["day", "week", "month", "year"];
+    fc.assert(
+      fc.property(
+        fc.constantFrom(...periods),
+        fc.integer({ min: 1, max: 24 }),
+        fc.array(
+          fc.record({
+            daysBack: fc.integer({ min: 0, max: 900 }),
+            category: fc.constantFrom("music", "drawing", "exercise"),
+            minutes: fc.integer({ min: 0, max: 120 }),
+          }),
+          { maxLength: 40 }
+        ),
+        (period, count, logs) => {
+          const b = builder();
+          logs.forEach((l, i) => {
+            const d = new Date(NOON);
+            d.setDate(d.getDate() - l.daysBack);
+            b.log(`l${String(i)}`, l.category, l.minutes, dayKey(d));
+          });
+          const s = reduce(b.events);
+          const buckets = minutesSeries(s.logEntries, period, count, NOON);
+          expect(buckets).toHaveLength(count);
+          // last bucket is the period containing `now`
+          expect(buckets[count - 1]!.key).toBe(periodKey(period, NOON));
+          const keys = new Set(buckets.map((k) => k.key));
+          expect(keys.size).toBe(count); // periods never collide
+          const bucketSum = buckets
+            .flatMap((k) => Object.values(k.minutes))
+            .reduce((a, m) => a + m, 0);
+          const inRangeSum = s.logEntries
+            .filter((e) => keys.has(periodKey(period, fromDayKey(e.effectiveDay))))
+            .reduce((a, e) => a + (e.minutes ?? 0), 0);
+          expect(bucketSum).toBe(inRangeSum);
+        }
+      )
+    );
+  });
+
+  it("PROPERTY: periodStarts are each their own period's start, oldest first", () => {
+    const periods: Period[] = ["day", "week", "month", "year"];
+    fc.assert(
+      fc.property(
+        fc.constantFrom(...periods),
+        fc.integer({ min: 1, max: 24 }),
+        fc.date({
+          min: new Date(2000, 0, 1),
+          max: new Date(2100, 0, 1),
+          noInvalidDate: true,
+        }),
+        (period, count, now) => {
+          const starts = periodStarts(period, count, now);
+          expect(starts).toHaveLength(count);
+          for (let i = 0; i < starts.length; i++) {
+            const s = starts[i]!;
+            // a period's start maps back to its own key
+            expect(periodKey(period, s)).toBe(
+              periodKey(period, new Date(s.getTime() + 3_600_000))
+            );
+            if (i > 0) expect(starts[i - 1]!.getTime()).toBeLessThan(s.getTime());
+          }
+        }
+      )
+    );
+  });
+
+  it("minutesSeries groupBy=undefined filters entries out (tag focus)", () => {
+    const b = builder();
+    b.log("bales", "exercise", 180, TODAY, undefined, ["farm work"]);
+    b.log("run", "exercise", 30, TODAY, undefined, ["outdoors"]);
+    const s = reduce(b.events);
+    const buckets = minutesSeries(s.logEntries, "day", 1, NOON, (e) =>
+      (e.tags ?? []).includes("farm work") ? e.category : undefined
+    );
+    expect(buckets[0]!.minutes).toEqual({ exercise: 180 });
   });
 });

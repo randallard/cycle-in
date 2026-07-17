@@ -17,10 +17,13 @@ build momentum), instead of relying on memory or a stale mental list.
   preferred time-of-day has already passed today show up **in orange**.
 - **Mark an item done**, **start** one without finishing it yet, **hold** one on the list
   regardless of its normal schedule (and release the hold later), or **log time spent**
-  (duration, reps, notes, a link) against a category/sub-category — whether or not it was ever
-  on the suggested list at all.
-- **Category/sub-category rollups** by day/week/month, so "how did drawing, music,
-  programming, and exercise fit in this week" is answerable directly.
+  (duration, reps, notes, a link, tags) against a category/sub-category — whether or not it
+  was ever on the suggested list at all. **Tags** are extra lenses beyond the one category:
+  bucking bales can be *exercise* (what the balance weighs) tagged *farm work*.
+- **Category/sub-category/tag rollups** on a dedicated **history view** — stacked columns
+  by day/week/month/year, drill into one category's sub-categories or one tag — so "how did
+  drawing, music, programming, and exercise fit in this week" (or "how much farm work this
+  summer") is answerable directly.
 - Items can come from three places: imported from
   [branching-video](https://github.com/randallard/branching-video)'s bookmarked-video export
   bundle (with a dedicated review/onboarding screen and an "advance to next node" action once

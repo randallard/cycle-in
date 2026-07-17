@@ -4,9 +4,13 @@ import { reduce } from "../core/reduce";
 import { minutesByCategory } from "../core/rollup";
 import type { SelectionEntry } from "../core/select";
 import { selectOptions } from "../core/select";
+import type { Period } from "../core/rollup";
 import { dayKey, fromDayKey } from "../core/time";
 import type { Cadence, ItemState, State } from "../core/types";
 import type { EventStore } from "../shell/storage";
+import { catColor, esc, fmtMin } from "./format";
+import type { HistoryModel } from "./history";
+import { chartSvg, historyHtml, historyModel, tooltipHtml } from "./history";
 
 /** Omit distributed over the event union (plain Omit collapses a union to its
  * common properties, losing every kind-specific payload). */
@@ -25,22 +29,9 @@ interface UiState {
   addOpen: boolean;
   status: string;
   statusError: boolean;
-}
-
-const esc = (s: string): string =>
-  s.replace(
-    /[&<>"']/g,
-    (c) =>
-      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
-        c
-      ] ?? c
-  );
-
-function fmtMin(total: number): string {
-  if (total < 60) return `${String(total)}m`;
-  const h = Math.floor(total / 60);
-  const m = total % 60;
-  return `${String(h)}h${String(m).padStart(2, "0")}`;
+  /** History view controls (the log itself is the durable part). */
+  histPeriod: Period;
+  histFocus: string;
 }
 
 function cadenceLabel(c: Cadence): string {
@@ -52,20 +43,20 @@ function cadenceLabel(c: Cadence): string {
   return `${c.kind}${time}`;
 }
 
-/** Stable category hue assignment: alphabetical order onto the validated
- * slots; categories beyond the palette get the neutral ink. */
-function catColor(category: string, allCategories: readonly string[]): string {
-  const i = allCategories.indexOf(category);
-  return i >= 0 && i < 6 ? `var(--cat-${String(i + 1)})` : "var(--ink-3)";
-}
-
 export async function startApp(
   store: EventStore,
   root: HTMLElement
 ): Promise<void> {
   const events: CycleEvent[] = [...(await store.all())];
   let state: State = reduce(events);
-  const ui: UiState = { addOpen: false, status: "", statusError: false };
+  const ui: UiState = {
+    addOpen: false,
+    status: "",
+    statusError: false,
+    histPeriod: "week",
+    histFocus: "all",
+  };
+  let histModel: HistoryModel | undefined;
 
   const mkEvent = (e: EventInput): CycleEvent => ({
     ...e,
@@ -127,6 +118,7 @@ export async function startApp(
         <form class="inline-form" data-form="log" data-item="${esc(item.id)}">
           <label>minutes <input type="number" name="minutes" min="1" max="1440" required /></label>
           <label>note <input type="text" name="notes" maxlength="200" /></label>
+          <label>tags <input type="text" name="tags" maxlength="120" placeholder="comma, separated" /></label>
           <button class="do" type="submit">Save log</button>
           <button class="do" type="button" data-action="close-forms">Cancel</button>
         </form>`;
@@ -257,6 +249,7 @@ export async function startApp(
           <label>minutes <input type="number" name="minutes" min="1" max="1440" required /></label>
           <label>sub-category <input type="text" name="subCategory" maxlength="60" /></label>
           <label>note <input type="text" name="notes" maxlength="200" /></label>
+          <label>tags <input type="text" name="tags" maxlength="120" placeholder="comma, separated" /></label>
           <button class="do" type="submit">Save log</button>
           <button class="do" type="button" data-action="close-forms">Cancel</button>
         </form>`
@@ -330,6 +323,11 @@ export async function startApp(
 
   function render(): void {
     const now = new Date();
+    if (location.hash === "#history") {
+      renderHistory(now);
+      return;
+    }
+    histModel = undefined;
     const focus = focusCategory();
     const cats = categoriesOf(state);
     const selection = selectOptions(state, now, {}, focus);
@@ -390,6 +388,7 @@ export async function startApp(
           <span class="date">${esc(dateStr)}${focus !== undefined ? ` · ${esc(focus)} focus` : ` · ${String(selection.length)} up now`}</span>
           <nav>
             ${focusNav}
+            <a href="#history">History</a>
             <button data-action="open-add">Add item…</button>
             <button data-action="export">Export events</button>
             <button data-action="import">Import bundle…</button>
@@ -413,6 +412,60 @@ export async function startApp(
       </div>`;
 
     recordImpressions(selection, now);
+  }
+
+  function renderHistory(now: Date): void {
+    const cats = categoriesOf(state);
+    const model = historyModel(state, cats, ui.histPeriod, ui.histFocus, now);
+    histModel = model;
+    const dateStr = now.toLocaleDateString(undefined, {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+    });
+    root.innerHTML = `
+      <div class="board">
+        <div class="top">
+          <h1><a href="#">cycle-in</a></h1>
+          <span class="date">${esc(dateStr)} · history</span>
+          <nav>
+            <a href="#">← board</a>
+            <button data-action="export">Export events</button>
+            <button data-action="import">Import bundle…</button>
+            <input id="import-file" type="file" accept=".json,application/json" hidden />
+          </nav>
+        </div>
+        <p class="status${ui.statusError ? " error" : ""}" role="status">${esc(ui.status)}</p>
+        ${historyHtml(model)}
+        <footer class="page">
+          <span>${String(events.length)} events in the log</span>
+          <span>same event log as the board — an entry's category is what balance weighs; tags are extra lenses</span>
+        </footer>
+      </div>`;
+    // The chart needs the container's rendered width, so it lands post-innerHTML.
+    const chart = root.querySelector<HTMLElement>("#hist-chart");
+    if (chart) chart.innerHTML = chartSvg(model, chart.clientWidth || 640);
+  }
+
+  function showHistTip(col: Element): void {
+    const tip = root.querySelector<HTMLElement>("#hist-tip");
+    if (!tip || histModel === undefined) return;
+    const i = Number(col.getAttribute("data-i"));
+    if (!Number.isInteger(i)) return;
+    tip.innerHTML = tooltipHtml(histModel, i);
+    tip.style.display = "block";
+    const wrap = tip.parentElement;
+    const ax = Number(col.getAttribute("data-ax"));
+    const ay = Number(col.getAttribute("data-ay"));
+    let x = ax + 12;
+    if (wrap && x + tip.offsetWidth > wrap.clientWidth) x = ax - tip.offsetWidth - 12;
+    tip.style.left = `${String(Math.max(0, x))}px`;
+    tip.style.top = `${String(Math.max(0, ay - 8))}px`;
+  }
+
+  function hideHistTip(): void {
+    const tip = root.querySelector<HTMLElement>("#hist-tip");
+    if (tip) tip.style.display = "none";
   }
 
   /** Note which items were actually shown (deduped per item per day by the
@@ -568,6 +621,14 @@ export async function startApp(
         e.preventDefault();
         location.hash = "";
         break;
+      case "hist-gran": {
+        const g = target.dataset["g"] as Period | undefined;
+        if (g !== undefined) {
+          ui.histPeriod = g;
+          render();
+        }
+        break;
+      }
       default:
         break;
     }
@@ -575,6 +636,11 @@ export async function startApp(
 
   root.addEventListener("change", (e) => {
     const input = e.target as HTMLInputElement;
+    if (input.id === "hist-focus") {
+      ui.histFocus = input.value;
+      render();
+      return;
+    }
     if (input.id !== "import-file") return;
     const f = input.files?.[0];
     if (f) {
@@ -618,6 +684,14 @@ export async function startApp(
       const subCategory =
         item?.subCategory ?? (str("subCategory") !== "" ? str("subCategory") : undefined);
       const notes = str("notes") !== "" ? str("notes") : undefined;
+      const tags = [
+        ...new Set(
+          str("tags")
+            .split(",")
+            .map((t) => t.trim())
+            .filter((t) => t !== "")
+        ),
+      ];
       closeForms();
       void dispatch({
         kind: "time-logged",
@@ -626,6 +700,7 @@ export async function startApp(
         effectiveDate: dayKey(now),
         minutes,
         ...(subCategory !== undefined ? { subCategory } : {}),
+        ...(tags.length > 0 ? { tags } : {}),
         ...(item !== undefined ? { itemId: item.id } : {}),
         ...(notes !== undefined ? { notes } : {}),
       });
@@ -661,6 +736,37 @@ export async function startApp(
         },
       });
     }
+  });
+
+  // History chart tooltips: enhance, never gate — the entries table below
+  // carries the same values. Same content on keyboard focus as on hover.
+  root.addEventListener("pointerover", (e) => {
+    const col = (e.target as Element).closest(".col");
+    if (col) showHistTip(col);
+    else hideHistTip();
+  });
+  root.addEventListener("pointerout", (e) => {
+    const to = e.relatedTarget as Element | null;
+    if (!to || !to.closest(".col")) hideHistTip();
+  });
+  root.addEventListener("focusin", (e) => {
+    const col = (e.target as Element).closest(".col");
+    if (col) showHistTip(col);
+  });
+  root.addEventListener("focusout", () => {
+    hideHistTip();
+  });
+
+  let resizeTimer: number | undefined;
+  window.addEventListener("resize", () => {
+    if (histModel === undefined) return;
+    window.clearTimeout(resizeTimer);
+    resizeTimer = window.setTimeout(() => {
+      const chart = root.querySelector<HTMLElement>("#hist-chart");
+      if (chart && histModel !== undefined) {
+        chart.innerHTML = chartSvg(histModel, chart.clientWidth || 640);
+      }
+    }, 120);
   });
 
   window.addEventListener("hashchange", () => {

@@ -1,0 +1,98 @@
+<!doctype html>
+<!-- TEMPORARY dev-only smoke harness (not committed): seeds a demo event log
+     into IndexedDB and boots the real app, so the history view can be
+     screenshot-verified end to end. Drive with query params:
+     ?view=history&g=month&f=tag:farm work&tip=1 -->
+<html lang="en">
+<head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>smoke</title>
+<link rel="stylesheet" href="/src/ui/style.css" />
+</head>
+<body>
+<div id="app"></div>
+<script type="module">
+window.addEventListener("error", (e) => { document.title = `smoke-error: ${e.message}`; });
+window.addEventListener("unhandledrejection", (e) => { document.title = `smoke-error: ${String(e.reason)}`; });
+document.title = "smoke-loading";
+const { openIndexedDbStore } = await import("/src/shell/storage.ts");
+const { startApp } = await import("/src/ui/app.ts");
+
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return function () {
+    a |= 0; a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const dayKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+const store = await openIndexedDbStore("smoke-history");
+if ((await store.all()).length === 0) {
+  const rnd = mulberry32(42);
+  const pick = (xs) => xs[Math.floor(rnd() * xs.length)];
+  const mins = (lo, hi) => lo + Math.round((rnd() * (hi - lo)) / 5) * 5;
+  let n = 0;
+  const events = [];
+  const push = (kind, payload, at) => {
+    n++;
+    events.push({ id: `seed-${String(n).padStart(5, "0")}`, at, v: 1, kind, ...payload });
+  };
+  const at0 = new Date(2024, 0, 1, 8, 0).getTime();
+  const items = [
+    { id: "it-draw", name: "figure drawing", category: "drawing", subCategory: "figure", cadence: { kind: "daily" } },
+    { id: "it-guitar", name: "guitar", category: "music", subCategory: "guitar", cadence: { kind: "daily" } },
+    { id: "it-rust", name: "rust katas", category: "programming", subCategory: "rust", cadence: { kind: "weekly" } },
+    { id: "it-run", name: "morning run", category: "exercise", subCategory: "run", cadence: { kind: "daily" } },
+  ];
+  items.forEach((item, i) => push("item-added", { item }, new Date(at0 + i * 1000).toISOString()));
+  const FARM_NOTES = ["Bucked bales", "Fence repair", "Mucked stalls", "Split firewood", "Moved irrigation pipe"];
+  const d = new Date(2024, 0, 1);
+  const today = new Date();
+  const log = (day, category, minutes, subCategory, tags, note) => {
+    push("time-logged", {
+      entryId: `le-${String(n)}`,
+      category, minutes, effectiveDate: day,
+      ...(subCategory ? { subCategory } : {}),
+      ...(tags && tags.length ? { tags } : {}),
+      ...(note ? { notes: note } : {}),
+    }, new Date(at0 + n * 60000).toISOString());
+  };
+  while (d < today) {
+    const day = dayKey(d);
+    const month = d.getMonth() + 1;
+    if (rnd() < 0.62) log(day, "programming", mins(30, 90), pick(["rust", "typescript"]));
+    if (rnd() < 0.52) log(day, "music", mins(15, 40), pick(["guitar", "piano"]));
+    if (rnd() < 0.38) log(day, "drawing", mins(15, 45), pick(["figure", "ink"]), rnd() < 0.18 ? ["with-kids"] : []);
+    if (rnd() < 0.48) {
+      const sub = pick(["run", "lift", "bike"]);
+      log(day, "exercise", mins(20, 60), sub, sub === "lift" ? [] : ["outdoors"]);
+    }
+    const farmP = month >= 6 && month <= 8 ? 0.4 : month >= 4 && month <= 10 ? 0.22 : 0.04;
+    if (rnd() < farmP) log(day, "exercise", mins(45, 180), undefined, ["farm work", "outdoors"], pick(FARM_NOTES));
+    d.setDate(d.getDate() + 1);
+  }
+  log(dayKey(today), "exercise", 180, undefined, ["farm work", "outdoors"], "Bucked bales");
+  await Promise.all(events.map((e) => store.append(e)));
+}
+
+const params = new URLSearchParams(location.search);
+if (params.get("view") === "history") location.hash = "#history";
+await startApp(store, document.getElementById("app"));
+const g = params.get("g");
+if (g) document.querySelector(`[data-g="${g}"]`)?.click();
+const f = params.get("f");
+if (f) {
+  const sel = document.getElementById("hist-focus");
+  if (sel) { sel.value = f; sel.dispatchEvent(new Event("change", { bubbles: true })); }
+}
+if (params.get("tip")) {
+  const cols = document.querySelectorAll(".col");
+  const col = cols[Math.min(7, cols.length - 1)];
+  if (col) col.dispatchEvent(new PointerEvent("pointerover", { bubbles: true }));
+}
+document.title = "smoke-ready";
+</script>
+</body>
+</html>

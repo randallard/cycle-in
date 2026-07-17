@@ -37,6 +37,10 @@ export type CycleEvent = EventBase &
         entryId: string;
         category: string;
         subCategory?: string;
+        /** Extra lenses beyond the one category — a bale-bucking entry is
+         * `exercise` (what the balance board weighs) tagged "farm work"
+         * (what tag rollups slice by). Empty arrays normalize to absent. */
+        tags?: string[];
         itemId?: string;
         effectiveDate?: string;
         minutes?: number;
@@ -50,6 +54,8 @@ export type CycleEvent = EventBase &
         patch: Partial<{
           category: string;
           subCategory: string;
+          /** Replaces the whole tag list; `[]` clears it. */
+          tags: string[];
           minutes: number;
           reps: number;
           notes: string;

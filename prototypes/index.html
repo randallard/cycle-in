@@ -34,10 +34,11 @@
 <body>
 <div class="page">
   <h1>cycle-in — choices-page prototypes</h1>
-  <p class="lede">Static design mockups, same demo data in both. Dev-server only — not part of
-  the production build. Both render in light and dark (they follow your OS theme).
+  <p class="lede">Design mockups with demo data. Dev-server only — not part of
+  the production build. All render in light and dark (they follow your OS theme).
   <b>Decision (Ryan, 2026-07-10): direction B, completely</b> — kept here for the record;
-  the real UI in <code>src/ui/</code> is built from B.</p>
+  the real UI in <code>src/ui/</code> is built from B. C is the follow-on history view,
+  built on B's language.</p>
 
   <a class="proto" href="./a-practice-ledger.html">
     <b>A — Practice ledger</b>
@@ -52,6 +53,16 @@
     even-split target, then per-category panels each carry their own day/week/month minutes
     and due items. Pinned and timed items float in a strip; Planning is a panel. Dark-first,
     denser, tool-like.</p>
+  </a>
+
+  <a class="proto" href="./c-history-view.html">
+    <b>C — History view</b>
+    <p>The reporting view: minutes over the last days / weeks / months / years as stacked
+    columns, switchable between all categories, one category by sub-category, or one
+    <em>tag</em> by category. Pitched the <code>tags</code> field on <code>time-logged</code>
+    (one category for the balance board + tags as extra lenses — "bucked bales" is
+    exercise <em>and</em> farm work). <b>Approved (Ryan, 2026-07-12) and implemented</b> —
+    the real view lives at <code>#history</code> in <code>src/ui/</code>; kept for the record.</p>
   </a>
 
   <p class="note">Things to react to: list-first (A) vs category-first (B) organization ·

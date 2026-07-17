@@ -43,6 +43,8 @@ export interface LogEntryState {
   id: string;
   category: string;
   subCategory?: string;
+  /** Extra lenses beyond the category (never empty — [] normalizes away). */
+  tags?: string[];
   itemId?: string;
   /** Day ("YYYY-MM-DD") the time counts toward (retroactive logging allowed). */
   effectiveDay: string;

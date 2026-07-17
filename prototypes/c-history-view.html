@@ -1,0 +1,667 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>cycle-in · history view (mockup)</title>
+<style>
+  /* Tokens copied from src/ui/style.css (direction B, dark-first) so this
+   * mockup previews exactly how the view sits in the real app. */
+  :root {
+    --ground: #14181d; --panel: #1c222a; --panel-2: #232b35; --line: #2b333d;
+    --ink: #e8ebee; --ink-2: #9aa4ae; --ink-3: #6b7682;
+    --overdue: #f09a56; --overdue-bg: #35271a; --track: #2b333d;
+    --cat-1: #3987e5; --cat-2: #199e70; --cat-3: #9085e9;
+    --cat-4: #c98500; --cat-5: #e66767; --cat-6: #d55181;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --ground: #eef0f2; --panel: #ffffff; --panel-2: #f5f7f9; --line: #dce0e5;
+      --ink: #1b2129; --ink-2: #57616c; --ink-3: #8b949e;
+      --overdue: #b45309; --overdue-bg: #f9ecdd; --track: #e2e6ea;
+      --cat-1: #2a78d6; --cat-2: #1baf7a; --cat-3: #4a3aa7;
+      --cat-4: #eda100; --cat-5: #e34948; --cat-6: #e87ba4;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { background: var(--ground); color: var(--ink); font: 15px/1.5 system-ui, sans-serif; margin: 0; }
+  button { font: inherit; }
+  :focus-visible { outline: 2px solid var(--ink-2); outline-offset: 2px; }
+  .board { max-width: 68rem; margin: 0 auto; padding: 1.5rem 1.25rem 3rem; }
+  .mono { font-family: ui-monospace, "Cascadia Mono", Menlo, monospace; font-variant-numeric: tabular-nums; }
+  .micro { text-transform: uppercase; letter-spacing: 0.12em; font-size: 0.66rem; font-weight: 600; color: var(--ink-3); }
+
+  .top { display: flex; align-items: baseline; gap: 1rem; flex-wrap: wrap; }
+  .top h1 { font-size: 1.05rem; font-weight: 700; margin: 0; letter-spacing: 0.02em; }
+  .top .date { color: var(--ink-2); }
+  .top nav { margin-left: auto; display: flex; gap: 0.9rem; font-size: 0.8rem; align-items: baseline; }
+  .top nav a { color: var(--ink-2); text-decoration: none; }
+  .top nav a:hover, .top nav a:focus-visible { color: var(--ink); text-decoration: underline; }
+  .lede { margin: 0.5rem 0 0; font-size: 0.8rem; color: var(--ink-2); max-width: 52rem; }
+  .lede b { color: var(--ink); }
+
+  /* ── filter row: one row, above everything it scopes ─────────────────── */
+  .filters { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; margin-top: 1.25rem; }
+  .seg { display: inline-flex; background: var(--panel); border: 1px solid var(--line); border-radius: 0.5rem; padding: 2px; }
+  .seg button {
+    font-size: 0.78rem; font-weight: 600; color: var(--ink-2); background: none;
+    border: none; border-radius: 0.35rem; padding: 0.35rem 0.75rem; cursor: pointer;
+  }
+  .seg button[aria-pressed="true"] { background: var(--panel-2); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line); }
+  .seg button:hover { color: var(--ink); }
+  .filters label { font-size: 0.78rem; color: var(--ink-2); display: flex; gap: 0.4rem; align-items: center; }
+  .filters select {
+    font: inherit; font-size: 0.8rem; color: var(--ink); background: var(--panel);
+    border: 1px solid var(--line); border-radius: 0.5rem; padding: 0.4rem 0.5rem;
+  }
+  .filters .range { margin-left: auto; font-size: 0.75rem; color: var(--ink-3); }
+
+  /* ── stat tiles ───────────────────────────────────────────────────────── */
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: 0.75rem; margin-top: 1rem; }
+  .tile { background: var(--panel); border: 1px solid var(--line); border-radius: 0.75rem; padding: 0.85rem 1rem; }
+  .tile .v { font-size: 1.45rem; font-weight: 600; margin-top: 0.2rem; display: flex; align-items: center; gap: 0.5rem; }
+  .tile .v .dot { width: 0.6rem; height: 0.6rem; }
+  .tile .d { font-size: 0.75rem; color: var(--ink-2); margin-top: 0.1rem; }
+
+  /* ── chart panel ──────────────────────────────────────────────────────── */
+  .panelbox { background: var(--panel); border: 1px solid var(--line); border-radius: 0.75rem; padding: 1rem 1.25rem 1.1rem; margin-top: 0.75rem; }
+  .panelbox > header { display: flex; align-items: baseline; gap: 0.75rem; flex-wrap: wrap; }
+  .panelbox h2 { font-size: 0.95rem; font-weight: 700; margin: 0; }
+  .panelbox header .sub { font-size: 0.78rem; color: var(--ink-2); }
+  .legend { margin-left: auto; display: flex; gap: 0.4rem 1.1rem; flex-wrap: wrap; align-items: center; }
+  .legend span { display: inline-flex; gap: 0.4rem; align-items: center; font-size: 0.78rem; color: var(--ink-2); }
+  .dot { width: 0.6rem; height: 0.6rem; border-radius: 50%; flex: none; }
+  .chartwrap { position: relative; margin-top: 0.75rem; }
+  .chartwrap svg { display: block; width: 100%; }
+  .col:hover rect.seg, .col:focus rect.seg, .col:focus-visible rect.seg,
+  .col:hover path.seg, .col:focus path.seg { filter: brightness(1.12); }
+  .col { outline: none; }
+  .col:focus-visible .hit { stroke: var(--ink-2); stroke-width: 2; }
+  .tooltip {
+    position: absolute; pointer-events: none; z-index: 2; display: none;
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 0.5rem;
+    padding: 0.5rem 0.65rem; font-size: 0.75rem; min-width: 10rem;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+  }
+  .tooltip .when { color: var(--ink-3); font-weight: 600; margin-bottom: 0.3rem; }
+  .tooltip .row { display: flex; align-items: center; gap: 0.45rem; margin-top: 0.15rem; }
+  .tooltip .key { width: 10px; height: 3px; border-radius: 2px; flex: none; }
+  .tooltip .val { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .tooltip .name { color: var(--ink-2); }
+  .tooltip .total { border-top: 1px solid var(--line); margin-top: 0.35rem; padding-top: 0.3rem; }
+
+  /* ── breakdown panels ─────────────────────────────────────────────────── */
+  .panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); gap: 0.75rem; margin-top: 0.75rem; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 0.75rem; padding: 1rem 1.25rem 0.9rem; border-top: 3px solid var(--line); min-width: 0; }
+  .panel h2 { font-size: 0.95rem; font-weight: 700; margin: 0; }
+  .panel .cap { font-size: 0.75rem; color: var(--ink-3); margin: 0.25rem 0 0; }
+  .brk { list-style: none; margin: 0.7rem 0 0; padding: 0; }
+  .brk li { padding: 0.45rem 0 0.35rem; border-top: 1px solid var(--line); }
+  .brk .head { display: flex; align-items: center; gap: 0.5rem; }
+  .brk .head .name { font-size: 0.85rem; font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+  .brk .head .min { margin-left: auto; font-size: 0.8rem; }
+  .brk .track { height: 8px; border-radius: 4px; background: var(--track); margin-top: 0.35rem; overflow: hidden; }
+  .brk .fill { height: 100%; border-radius: 4px; }
+  .brk .subs { list-style: none; margin: 0.3rem 0 0; padding: 0 0 0 1.1rem; }
+  .brk .subs li { border: none; display: flex; gap: 0.5rem; padding: 0.1rem 0; font-size: 0.75rem; color: var(--ink-2); }
+  .brk .subs .min { margin-left: auto; }
+  .chip {
+    font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.08em;
+    border: 1px solid var(--line); border-radius: 999px; padding: 0.12rem 0.5rem;
+    color: var(--ink-2); white-space: nowrap; flex: none;
+  }
+  .chip.tag { border-style: dashed; }
+
+  /* ── entries table ────────────────────────────────────────────────────── */
+  .tablewrap { overflow-x: auto; margin-top: 0.7rem; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.8rem; }
+  th { text-align: left; font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-3); font-weight: 600; padding: 0.3rem 0.9rem 0.3rem 0; }
+  td { border-top: 1px solid var(--line); padding: 0.45rem 0.9rem 0.45rem 0; vertical-align: top; }
+  td.min, th.min { text-align: right; padding-right: 0; }
+  td .dot { display: inline-block; margin-right: 0.4rem; vertical-align: baseline; }
+  td .tags { display: flex; gap: 0.3rem; flex-wrap: wrap; }
+  .highlight td { background: linear-gradient(to right, transparent, transparent); }
+  .highlight .what b { font-weight: 600; }
+
+  footer.page { margin-top: 1.5rem; color: var(--ink-3); font-size: 0.75rem; display: flex; gap: 1rem; flex-wrap: wrap; }
+  footer.page a { color: var(--ink-3); }
+</style>
+</head>
+<body>
+<div class="board">
+  <header class="top">
+    <h1>cycle-in — history</h1>
+    <span class="date">Sun Jul 12, 2026</span>
+    <nav><a href="./index.html">← prototypes</a><span style="color:var(--ink-3); font-size:0.8rem">board · <b style="color:var(--ink-2)">history</b></span></nav>
+  </header>
+  <p class="lede">Mockup of the history/reporting view. <b>New in the data model: tags.</b>
+  A log entry keeps its one category (that's what the balance board weighs) plus optional
+  tags as extra lenses — today's <b>“Bucked bales” is exercise, tagged <em>farm work</em></b>,
+  so it counts toward exercise on the board <em>and</em> shows up under the farm-work tag here.</p>
+
+  <div class="filters" role="group" aria-label="History filters">
+    <div class="seg" id="granularity" role="group" aria-label="Bucket size">
+      <button data-g="day" aria-pressed="false">Day</button>
+      <button data-g="week" aria-pressed="true">Week</button>
+      <button data-g="month" aria-pressed="false">Month</button>
+      <button data-g="year" aria-pressed="false">Year</button>
+    </div>
+    <label>show
+      <select id="focus"></select>
+    </label>
+    <span class="range" id="rangelabel"></span>
+  </div>
+
+  <div class="tiles" id="tiles"></div>
+
+  <section class="panelbox" aria-label="Time logged">
+    <header>
+      <h2 id="charttitle">Minutes logged</h2>
+      <span class="sub" id="chartsub"></span>
+      <div class="legend" id="legend"></div>
+    </header>
+    <div class="chartwrap" id="chartwrap">
+      <div class="tooltip" id="tooltip"></div>
+    </div>
+  </section>
+
+  <div class="panels">
+    <section class="panel" style="border-top-color: var(--ink-3)">
+      <h2>By category</h2>
+      <p class="cap" id="catcap"></p>
+      <ul class="brk" id="bycat"></ul>
+    </section>
+    <section class="panel" style="border-top-color: var(--ink-3)">
+      <h2>By tag</h2>
+      <p class="cap">An entry counts once in its category; tags are extra lenses, so tag
+      totals can overlap each other and the category totals.</p>
+      <ul class="brk" id="bytag"></ul>
+    </section>
+  </div>
+
+  <section class="panelbox" aria-label="Log entries">
+    <header><h2>Entries</h2><span class="sub" id="tablesub"></span></header>
+    <div class="tablewrap">
+      <table>
+        <thead><tr>
+          <th>Date</th><th>What</th><th>Category</th><th>Sub-category</th><th>Tags</th><th class="min">Time</th>
+        </tr></thead>
+        <tbody id="entries"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer class="page">
+    <span>static mockup · deterministic demo data, ~2.5 years of it</span>
+    <span>the real view reads the same event log as the board (<code>time-logged</code> + new <code>tags</code> field)</span>
+  </footer>
+</div>
+
+<script>
+"use strict";
+/* ── demo data ─────────────────────────────────────────────────────────────
+ * Deterministic (seeded PRNG) so every reload shows the same history.
+ * Entries mirror the real LogEntryState: effectiveDay, category, optional
+ * subCategory, minutes, note — plus the new `tags` array this mockup pitches. */
+const TODAY = new Date(2026, 6, 12); // the mockup's "now": Sun Jul 12 2026
+
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return function () {
+    a |= 0; a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+const CATS = ["drawing", "exercise", "music", "programming"]; // sorted, like the app
+const CAT_COLOR = {
+  drawing: "var(--cat-1)", exercise: "var(--cat-2)",
+  music: "var(--cat-3)", programming: "var(--cat-4)",
+};
+const SUB_PALETTE = ["var(--cat-1)", "var(--cat-2)", "var(--cat-3)", "var(--cat-4)", "var(--cat-5)", "var(--cat-6)"];
+const FARM_NOTES = ["Bucked bales", "Fence repair", "Mucked stalls", "Split firewood", "Moved irrigation pipe"];
+
+function dayKey(d) {
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+function makeEntries() {
+  const rnd = mulberry32(42);
+  const pick = (xs) => xs[Math.floor(rnd() * xs.length)];
+  const mins = (lo, hi) => lo + Math.round(rnd() * (hi - lo) / 5) * 5;
+  const out = [];
+  const d = new Date(2024, 0, 1);
+  while (d <= TODAY) {
+    const day = dayKey(d);
+    const month = d.getMonth() + 1;
+    if (rnd() < 0.62) out.push({ day, category: "programming", subCategory: pick(["rust", "typescript"]), minutes: mins(30, 90), tags: [] });
+    if (rnd() < 0.52) out.push({ day, category: "music", subCategory: pick(["guitar", "piano"]), minutes: mins(15, 40), tags: [] });
+    if (rnd() < 0.38) out.push({ day, category: "drawing", subCategory: pick(["figure", "ink"]), minutes: mins(15, 45), tags: rnd() < 0.18 ? ["with-kids"] : [] });
+    if (rnd() < 0.48) {
+      const sub = pick(["run", "lift", "bike"]);
+      out.push({ day, category: "exercise", subCategory: sub, minutes: mins(20, 60), tags: sub === "lift" ? [] : ["outdoors"] });
+    }
+    // farm chores: seasonal (spring–fall), logged as exercise tagged "farm work"
+    const farmP = month >= 6 && month <= 8 ? 0.4 : (month >= 4 && month <= 10 ? 0.22 : 0.04);
+    if (rnd() < farmP) out.push({ day, category: "exercise", minutes: mins(45, 180), tags: ["farm work", "outdoors"], note: pick(FARM_NOTES) });
+    d.setDate(d.getDate() + 1);
+  }
+  // Today's flagship entry — the scenario this view exists for.
+  out.push({ day: dayKey(TODAY), category: "exercise", minutes: 180, tags: ["farm work", "outdoors"], note: "Bucked bales" });
+  out.push({ day: dayKey(TODAY), category: "music", subCategory: "guitar", minutes: 25, tags: [] });
+  return out;
+}
+const ENTRIES = makeEntries();
+const ALL_TAGS = [...new Set(ENTRIES.flatMap((e) => e.tags))].sort();
+
+/* ── formatting (matches src/ui/app.ts fmtMin) ───────────────────────────── */
+function fmtMin(total) {
+  if (total < 60) return `${total}m`;
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  return `${h}h${String(m).padStart(2, "0")}`;
+}
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+function fromDay(key) {
+  const [y, m, dd] = key.split("-").map(Number);
+  return new Date(y, m - 1, dd);
+}
+
+/* ── bucketing: day / week (starts Monday, per CycleConfig) / month / year ── */
+const GRAN = {
+  day:   { n: 14, label: "last 14 days",  step: (d) => d.setDate(d.getDate() - 1) },
+  week:  { n: 12, label: "last 12 weeks", step: (d) => d.setDate(d.getDate() - 7) },
+  month: { n: 12, label: "last 12 months", step: (d) => d.setMonth(d.getMonth() - 1) },
+  year:  { n: 3,  label: "all years",      step: (d) => d.setFullYear(d.getFullYear() - 1) },
+};
+function bucketStart(g, d) {
+  const c = new Date(d);
+  if (g === "week") { const dow = (c.getDay() + 6) % 7; c.setDate(c.getDate() - dow); } // Monday
+  if (g === "month") c.setDate(1);
+  if (g === "year") { c.setMonth(0); c.setDate(1); }
+  c.setHours(0, 0, 0, 0);
+  return c;
+}
+function bucketLabel(g, d, first) {
+  if (g === "year") return String(d.getFullYear());
+  if (g === "month") return d.getMonth() === 0 || first ? `${MONTHS[d.getMonth()]} ’${String(d.getFullYear()).slice(2)}` : MONTHS[d.getMonth()];
+  return `${MONTHS[d.getMonth()]} ${d.getDate()}`;
+}
+function buckets(g) {
+  const out = [];
+  const d = bucketStart(g, TODAY);
+  for (let i = 0; i < GRAN[g].n; i++) { out.unshift(new Date(d)); GRAN[g].step(d); }
+  return out.map((start, i) => ({ start, key: dayKey(bucketStart(g, start)), label: bucketLabel(g, start, i === 0) }));
+}
+function bucketKeyOf(g, day) { return dayKey(bucketStart(g, fromDay(day))); }
+
+/* ── state ─────────────────────────────────────────────────────────────── */
+let gran = "week";
+let focus = "all"; // "all" | "cat:<name>" | "tag:<name>"
+
+/* Series for the current focus. Colors follow the entity, never its rank. */
+function seriesDef() {
+  if (focus.startsWith("cat:")) {
+    const cat = focus.slice(4);
+    const subs = [...new Set(ENTRIES.filter((e) => e.category === cat).map((e) => e.subCategory ?? "(no sub-category)"))].sort();
+    return { entries: ENTRIES.filter((e) => e.category === cat), names: subs, of: (e) => e.subCategory ?? "(no sub-category)", color: (s) => SUB_PALETTE[subs.indexOf(s)] ?? "var(--ink-3)" };
+  }
+  if (focus.startsWith("tag:")) {
+    const tag = focus.slice(4);
+    return { entries: ENTRIES.filter((e) => e.tags.includes(tag)), names: CATS, of: (e) => e.category, color: (c) => CAT_COLOR[c] };
+  }
+  return { entries: ENTRIES, names: CATS, of: (e) => e.category, color: (c) => CAT_COLOR[c] };
+}
+
+function tally(g) {
+  const def = seriesDef();
+  const bks = buckets(g);
+  const idx = new Map(bks.map((b, i) => [b.key, i]));
+  const grid = bks.map(() => Object.fromEntries(def.names.map((n) => [n, 0])));
+  for (const e of def.entries) {
+    const i = idx.get(bucketKeyOf(g, e.day));
+    if (i !== undefined) grid[i][def.of(e)] += e.minutes;
+  }
+  return { def, bks, grid, inRange: def.entries.filter((e) => idx.has(bucketKeyOf(g, e.day))) };
+}
+
+/* ── DOM helpers (names are data — textContent only, never innerHTML) ────── */
+const $ = (id) => document.getElementById(id);
+function el(tag, cls, text) {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text !== undefined) n.textContent = text;
+  return n;
+}
+function dotEl(color) { const d = el("span", "dot"); d.style.background = color; return d; }
+
+/* ── stat tiles ────────────────────────────────────────────────────────── */
+function renderTiles(t) {
+  const box = $("tiles");
+  box.textContent = "";
+  const last = t.grid[t.grid.length - 1];
+  const prev = t.grid[t.grid.length - 2];
+  const sum = (row) => row ? Object.values(row).reduce((a, b) => a + b, 0) : 0;
+  const cur = sum(last), pre = sum(prev);
+  const periodName = { day: "Today", week: "This week", month: "This month", year: "This year" }[gran];
+  const prevName = { day: "yesterday", week: "last week", month: "last month", year: "last year" }[gran];
+
+  const t1 = el("div", "tile");
+  t1.append(el("div", "micro", periodName), el("div", "v", fmtMin(cur)));
+  const diff = cur - pre;
+  t1.append(el("div", "d", `${diff >= 0 ? "+" : "−"}${fmtMin(Math.abs(diff))} vs ${prevName}`));
+  box.append(t1);
+
+  const totals = {};
+  for (const row of t.grid) for (const [k, v] of Object.entries(row)) totals[k] = (totals[k] ?? 0) + v;
+  const top = Object.entries(totals).sort((a, b) => b[1] - a[1])[0];
+  const t2 = el("div", "tile");
+  t2.append(el("div", "micro", focus.startsWith("cat:") ? "Top sub-category" : "Top category"));
+  const v2 = el("div", "v");
+  if (top) { v2.append(dotEl(t.def.color(top[0])), document.createTextNode(top[0])); } else v2.textContent = "—";
+  t2.append(v2, el("div", "d", top ? `${fmtMin(top[1])} in range` : ""));
+  box.append(t2);
+
+  const t3 = el("div", "tile");
+  t3.append(el("div", "micro", "Entries logged"), el("div", "v", String(t.inRange.length)),
+    el("div", "d", GRAN[gran].label));
+  box.append(t3);
+}
+
+/* ── the chart: stacked columns, SVG ──────────────────────────────────────
+ * Mark spec: bars ≤24px, 4px rounded top on the topmost segment (square at
+ * the baseline), 2px surface gaps between stacked segments, solid hairline
+ * gridlines, one axis. Hover/focus tooltip lists every series at that X. */
+const SVGNS = "http://www.w3.org/2000/svg";
+function svgEl(tag, attrs) {
+  const n = document.createElementNS(SVGNS, tag);
+  for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, String(v));
+  return n;
+}
+function niceMax(m) {
+  const steps = [60, 120, 180, 240, 300, 360, 480, 600, 900, 1200, 1800, 2400, 3600, 4800, 6000, 9000, 12000, 18000, 24000];
+  for (const s of steps) if (m <= s * 4) return Math.ceil(m / s) * s || s;
+  return Math.ceil(m / 24000) * 24000;
+}
+
+function renderChart(t) {
+  const wrap = $("chartwrap");
+  wrap.querySelector("svg")?.remove();
+  const tip = $("tooltip");
+  tip.style.display = "none";
+
+  const W = Math.max(320, wrap.clientWidth);
+  const plotH = 240, axisB = 26, padL = 44, padR = 8, padT = 8;
+  const H = padT + plotH + axisB;
+  const svg = svgEl("svg", { width: W, height: H, viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "Minutes logged per period, stacked by series" });
+
+  const maxTotal = Math.max(...t.grid.map((r) => Object.values(r).reduce((a, b) => a + b, 0)), 1);
+  const yMax = niceMax(maxTotal);
+  const ticks = 4;
+  const y = (m) => padT + plotH - (m / yMax) * plotH;
+
+  for (let i = 0; i <= ticks; i++) {
+    const m = (yMax / ticks) * i;
+    const yy = y(m);
+    svg.append(svgEl("line", { x1: padL, x2: W - padR, y1: yy, y2: yy, stroke: "var(--line)", "stroke-width": 1 }));
+    const lbl = svgEl("text", { x: padL - 8, y: yy + 3.5, "text-anchor": "end", fill: "var(--ink-3)", "font-size": 10, "font-family": "ui-monospace, Menlo, monospace" });
+    lbl.textContent = m === 0 ? "0" : fmtMin(m);
+    svg.append(lbl);
+  }
+
+  const n = t.bks.length;
+  const plotW = W - padL - padR;
+  const band = plotW / n;
+  const barW = Math.min(24, band * 0.62);
+  const GAP = 2;
+  const labelEvery = Math.ceil((n * 60) / plotW);
+
+  t.bks.forEach((b, i) => {
+    const cx = padL + band * i + band / 2;
+    const g = svgEl("g", { class: "col", tabindex: 0 });
+    const parts = t.def.names.map((name) => ({ name, m: t.grid[i][name] })).filter((p) => p.m > 0);
+    const total = parts.reduce((a, p) => a + p.m, 0);
+    g.setAttribute("aria-label", `${b.label}: ${total === 0 ? "nothing logged" : parts.map((p) => `${p.name} ${fmtMin(p.m)}`).join(", ")}`);
+
+    // hit target: the whole band, full plot height — far bigger than the mark
+    g.append(svgEl("rect", { class: "hit", x: padL + band * i + 1, y: padT, width: band - 2, height: plotH, fill: "transparent" }));
+
+    // Stack bottom-up. Each non-top segment gives up GAP px at its own top,
+    // so a 2px surface gap separates every adjacent pair while the bottom
+    // segment stays square on the baseline and the top one keeps its cap.
+    let yTop = y(0);
+    parts.forEach((p, pi) => {
+      const hRaw = (p.m / yMax) * plotH;
+      const yy = yTop - hRaw;
+      const x0 = cx - barW / 2;
+      const isTop = pi === parts.length - 1;
+      const fill = t.def.color(p.name);
+      if (isTop && hRaw >= 5) {
+        const r = 4;
+        const path = svgEl("path", { class: "seg", fill, d:
+          `M${x0},${yy + hRaw} L${x0},${yy + r} Q${x0},${yy} ${x0 + r},${yy} L${x0 + barW - r},${yy} Q${x0 + barW},${yy} ${x0 + barW},${yy + r} L${x0 + barW},${yy + hRaw} Z` });
+        g.append(path);
+      } else {
+        const h = isTop ? Math.max(1, hRaw) : Math.max(1, hRaw - GAP);
+        g.append(svgEl("rect", { class: "seg", x: x0, y: isTop ? yy : yy + GAP, width: barW, height: h, fill }));
+      }
+      yTop = yy;
+    });
+
+    const show = () => showTip(t, b, i, padL + band * i + band / 2, y(total));
+    g.addEventListener("pointerenter", show);
+    g.addEventListener("pointerleave", hideTip);
+    g.addEventListener("focus", show);
+    g.addEventListener("blur", hideTip);
+    svg.append(g);
+
+    if (i % labelEvery === 0) {
+      const xl = svgEl("text", { x: cx, y: padT + plotH + 16, "text-anchor": "middle", fill: "var(--ink-3)", "font-size": 10 });
+      xl.textContent = b.label;
+      svg.append(xl);
+    }
+  });
+
+  svg.append(svgEl("line", { x1: padL, x2: W - padR, y1: y(0), y2: y(0), stroke: "var(--line)", "stroke-width": 1 }));
+  wrap.append(svg);
+}
+
+function showTip(t, b, i, anchorX, anchorY) {
+  const tip = $("tooltip");
+  tip.textContent = "";
+  tip.append(el("div", "when", b.label));
+  const parts = t.def.names.map((name) => ({ name, m: t.grid[i][name] })).filter((p) => p.m > 0);
+  if (parts.length === 0) tip.append(el("div", "name", "nothing logged"));
+  for (const p of [...parts].reverse()) {
+    const row = el("div", "row");
+    const key = el("span", "key"); key.style.background = t.def.color(p.name);
+    row.append(key, el("span", "val", fmtMin(p.m)), el("span", "name", p.name));
+    tip.append(row);
+  }
+  if (parts.length > 1) {
+    const row = el("div", "row total");
+    row.append(el("span", "key"), el("span", "val", fmtMin(parts.reduce((a, p) => a + p.m, 0))), el("span", "name", "total"));
+    tip.append(row);
+  }
+  tip.style.display = "block";
+  const wrap = $("chartwrap");
+  const tw = tip.offsetWidth;
+  let x = anchorX + 12;
+  if (x + tw > wrap.clientWidth) x = anchorX - tw - 12;
+  tip.style.left = `${Math.max(0, x)}px`;
+  tip.style.top = `${Math.max(0, anchorY - 8)}px`;
+}
+function hideTip() { $("tooltip").style.display = "none"; }
+
+/* ── legend ────────────────────────────────────────────────────────────── */
+function renderLegend(t) {
+  const lg = $("legend");
+  lg.textContent = "";
+  for (const name of t.def.names) {
+    const s = el("span");
+    s.append(dotEl(t.def.color(name)), document.createTextNode(name));
+    lg.append(s);
+  }
+}
+
+/* ── breakdowns ────────────────────────────────────────────────────────── */
+function rangePhrase() {
+  const l = GRAN[gran].label;
+  return l.startsWith("last") ? `the ${l}` : l;
+}
+function renderByCategory(t) {
+  const ul = $("bycat");
+  ul.textContent = "";
+  $("catcap").textContent = `Minutes over ${rangePhrase()}, with sub-categories underneath.`;
+  const byCat = {};
+  for (const e of t.inRange.filter(() => !focus.startsWith("cat:")) ) {
+    (byCat[e.category] ??= { total: 0, subs: {} });
+    byCat[e.category].total += e.minutes;
+    const s = e.subCategory ?? "(no sub-category)";
+    byCat[e.category].subs[s] = (byCat[e.category].subs[s] ?? 0) + e.minutes;
+  }
+  if (focus.startsWith("cat:")) {
+    // focused on one category: rows are its sub-categories
+    const cat = focus.slice(4);
+    for (const e of t.inRange) {
+      const s = e.subCategory ?? "(no sub-category)";
+      (byCat[s] ??= { total: 0, subs: {} });
+      byCat[s].total += e.minutes;
+    }
+    renderBrkRows(ul, byCat, (name) => t.def.color(name), null);
+    $("catcap").textContent = `Sub-categories of ${cat} over ${rangePhrase()}.`;
+    return;
+  }
+  renderBrkRows(ul, byCat, (name) => CAT_COLOR[name] ?? "var(--ink-3)", "subs");
+}
+function renderBrkRows(ul, map, colorOf, subsKey) {
+  const rows = Object.entries(map).sort((a, b) => b[1].total - a[1].total);
+  const max = Math.max(...rows.map(([, v]) => v.total), 1);
+  for (const [name, v] of rows) {
+    const li = el("li");
+    const head = el("div", "head");
+    head.append(dotEl(colorOf(name)), el("span", "name", name), el("span", "min mono", fmtMin(v.total)));
+    li.append(head);
+    const track = el("div", "track");
+    const fill = el("div", "fill");
+    fill.style.width = `${(v.total / max) * 100}%`;
+    fill.style.background = colorOf(name);
+    track.append(fill);
+    li.append(track);
+    if (subsKey && Object.keys(v.subs).length > 0) {
+      const subs = el("ul", "subs");
+      for (const [s, m] of Object.entries(v.subs).sort((a, b) => b[1] - a[1])) {
+        const sl = el("li");
+        sl.append(el("span", "", s), el("span", "min mono", fmtMin(m)));
+        subs.append(sl);
+      }
+      li.append(subs);
+    }
+    ul.append(li);
+  }
+  if (rows.length === 0) ul.append(el("li", "", "Nothing logged in this range."));
+}
+function renderByTag(t) {
+  const ul = $("bytag");
+  ul.textContent = "";
+  const byTag = {};
+  for (const e of t.inRange) for (const tag of e.tags) {
+    (byTag[tag] ??= { total: 0, count: 0, subs: {} });
+    byTag[tag].total += e.minutes;
+    byTag[tag].count += 1;
+  }
+  const rows = Object.entries(byTag).sort((a, b) => b[1].total - a[1].total);
+  const max = Math.max(...rows.map(([, v]) => v.total), 1);
+  for (const [name, v] of rows) {
+    const li = el("li");
+    const head = el("div", "head");
+    const chip = el("span", "chip tag", name);
+    head.append(chip, el("span", "min mono", `${fmtMin(v.total)} · ${v.count} ${v.count === 1 ? "entry" : "entries"}`));
+    li.append(head);
+    const track = el("div", "track");
+    const fill = el("div", "fill");
+    fill.style.width = `${(v.total / max) * 100}%`;
+    fill.style.background = "var(--ink-3)";
+    track.append(fill);
+    li.append(track);
+    ul.append(li);
+  }
+  if (rows.length === 0) ul.append(el("li", "", "No tagged entries in this range."));
+}
+
+/* ── entries table (the WCAG-clean twin of the chart) ─────────────────────── */
+function renderTable(t) {
+  const tb = $("entries");
+  tb.textContent = "";
+  const rows = [...t.inRange].sort((a, b) => (a.day < b.day ? 1 : -1)).slice(0, 15);
+  $("tablesub").textContent = `${Math.min(15, t.inRange.length)} most recent of ${t.inRange.length} in range`;
+  for (const e of rows) {
+    const tr = el("tr");
+    if (e.note === "Bucked bales" && e.day === dayKey(TODAY)) tr.className = "highlight";
+    const d = fromDay(e.day);
+    tr.append(el("td", "mono", `${MONTHS[d.getMonth()]} ${d.getDate()}`));
+    const what = el("td", "what");
+    what.append(e.note ? el("b", "", e.note) : el("span", "", "—"));
+    tr.append(what);
+    const cat = el("td");
+    cat.append(dotEl(CAT_COLOR[e.category] ?? "var(--ink-3)"), document.createTextNode(e.category));
+    tr.append(cat);
+    tr.append(el("td", "", e.subCategory ?? "—"));
+    const tags = el("td");
+    const tagbox = el("span", "tags");
+    for (const tag of e.tags) tagbox.append(el("span", "chip tag", tag));
+    if (e.tags.length === 0) tagbox.textContent = "—";
+    tags.append(tagbox);
+    tr.append(tags);
+    tr.append(el("td", "min mono", fmtMin(e.minutes)));
+    tb.append(tr);
+  }
+}
+
+/* ── controls & render loop ───────────────────────────────────────────────── */
+function renderFocusOptions() {
+  const sel = $("focus");
+  sel.textContent = "";
+  const opt = (v, label) => { const o = el("option", "", label); o.value = v; sel.append(o); };
+  opt("all", "all categories");
+  for (const c of CATS) opt(`cat:${c}`, `category: ${c}`);
+  for (const tg of ALL_TAGS) opt(`tag:${tg}`, `tag: ${tg}`);
+  sel.value = focus;
+}
+function titleFor() {
+  if (focus.startsWith("cat:")) return `Minutes logged — ${focus.slice(4)}, by sub-category`;
+  if (focus.startsWith("tag:")) return `Minutes logged — tag “${focus.slice(4)}”, by category`;
+  return "Minutes logged, by category";
+}
+function render() {
+  const t = tally(gran);
+  $("rangelabel").textContent = GRAN[gran].label;
+  $("charttitle").textContent = titleFor();
+  $("chartsub").textContent = `per ${gran}`;
+  renderTiles(t);
+  renderLegend(t);
+  renderChart(t);
+  renderByCategory(t);
+  renderByTag(t);
+  renderTable(t);
+}
+
+$("granularity").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-g]");
+  if (!b) return;
+  gran = b.dataset.g;
+  for (const btn of $("granularity").querySelectorAll("button")) btn.setAttribute("aria-pressed", String(btn === b));
+  render();
+});
+$("focus").addEventListener("change", () => { focus = $("focus").value; render(); });
+let resizeT;
+window.addEventListener("resize", () => { clearTimeout(resizeT); resizeT = setTimeout(() => { renderChart(tally(gran)); }, 120); });
+
+renderFocusOptions();
+render();
+</script>
+</body>
+</html>

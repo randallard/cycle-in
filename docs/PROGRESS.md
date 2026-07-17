@@ -1,6 +1,6 @@
 # Progress & Status
 
-_Last updated: 2026-07-10_
+_Last updated: 2026-07-12_
 
 ## Status / next
 
@@ -62,6 +62,29 @@ cadence / archive / log time at item and category level), add-item form, hash-ro
 category focus, first-run empty state, impressions recording, export/import in the top bar,
 and a Planning panel with an empty state until YouTube lands. Demo seeding removed. Category
 colors are a CVD-validated palette with the warm band reserved for overdue-orange.
+
+**2026-07-12 session: tags + the history view.** Scenario that drove it (Ryan): "bucked
+bales for a few hours — mark it exercise *and* farm work, and see time by
+category/sub-category over day/week/month/year(s)". Decision: **tags on `time-logged`**
+(Ryan picked tags over double-logging) — an entry keeps its one category (what the balance
+board weighs and selection balances) plus optional `tags: string[]` as extra lenses, so tag
+totals may overlap; `[]` normalizes to absent, `log-corrected` can replace or clear the
+list, and the bundle parser (envelope-only validation) already imports tagged events
+losslessly. Core: `rollup.ts` gained the `year` period, `periodKey`/`periodStart`/
+`periodStarts`, `minutesByTag`, and `minutesSeries` (last-N-periods buckets with a
+filter+group callback — by category, by sub-category within one category, or by category
+among entries carrying one tag); 49 tests passing including new properties (series buckets
+partition the in-range total across all four periods; period starts round-trip their own
+keys). UI: both "Log time…" forms take comma-separated tags; a **hash-routed `#history`
+view** (from design mockup C in `prototypes/`, built on direction B's language) renders
+stat tiles, a stacked-column SVG chart with hover/keyboard tooltips (day/week/month/year
+switcher; show-filter for all categories / one category by sub-category / one tag by
+category), by-category and by-tag breakdowns, and the raw entries table. Shared string
+helpers moved to `src/ui/format.ts`. The category palette was validated programmatically
+for CVD/contrast in both themes (passes; light mode's sub-3:1 hues are covered by the
+table view). Verified end to end headlessly via a seeded-IndexedDB smoke page
+(`prototypes/_smoke-history.html`, dev-only, seeds its own `smoke-history` DB — handy for
+demoing the history view with data; delete freely).
 
 **Next build steps, in order:**
 - **Rest of the UI** — the item-management view (rename / recategorize / unarchive — the
