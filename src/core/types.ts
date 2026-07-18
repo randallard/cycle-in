@@ -8,6 +8,26 @@ export interface Cadence {
   atTime?: { hour: number; minute: number };
 }
 
+/** A single step of a branching-video-sourced time-option (ADR-0004): a chosen
+ * node with its video coordinates resolved (produced by `bvimport`'s
+ * `stepsFromNodes`). */
+export interface BvStep {
+  nodeId: string;
+  title: string;
+  videoId?: string;
+  start?: number;
+  end?: number;
+}
+
+/** Provenance + ordered step sequence for a time-option imported from
+ * branching-video. `currentNodeId` (on `ItemState`) points at the current
+ * step; `steps` is empty for a plain single-node bookmark. */
+export interface BvSource {
+  showId: string;
+  showTitle: string;
+  steps: BvStep[];
+}
+
 /** Immutable creation-time facts about an item. Everything that changes over
  * time (held/archived/lastDone/cadence...) is derived from events. */
 export interface ItemSeed {
@@ -16,8 +36,8 @@ export interface ItemSeed {
   category: string;
   subCategory?: string;
   cadence: Cadence;
-  /** Present only for items sourced from a branching-video bookmark. */
-  bvSource?: { slug: string; nodeId: string };
+  /** Present only for items sourced from a branching-video import. */
+  bvSource?: BvSource;
 }
 
 /** Current state of an item, derived by the reducer — never stored directly. */
@@ -33,8 +53,9 @@ export interface ItemState {
   lastDoneDay?: string;
   /** ISO timestamp of an explicit start that has no matching done yet. */
   startedAt?: string;
-  bvSource?: { slug: string; nodeId: string };
-  /** Latest node chosen via "advance to next node" (BV items). */
+  bvSource?: BvSource;
+  /** The current step, an id into `bvSource.steps` — starts at the first step
+   * and moves via "advance to next step" (`bv-node-advanced`). */
   currentNodeId?: string;
 }
 
@@ -46,6 +67,8 @@ export interface LogEntryState {
   /** Extra lenses beyond the category (never empty — [] normalizes away). */
   tags?: string[];
   itemId?: string;
+  /** The branching-video step (node) a check-in documents; absent otherwise. */
+  nodeId?: string;
   /** Day ("YYYY-MM-DD") the time counts toward (retroactive logging allowed). */
   effectiveDay: string;
   minutes?: number;

@@ -1,16 +1,29 @@
 import { parseBundle, serializeBundle } from "../core/bundle";
+import { parseBvConfig } from "../core/bvimport";
 import type { CycleEvent } from "../core/events";
 import { reduce } from "../core/reduce";
 import { minutesByCategory } from "../core/rollup";
 import type { SelectionEntry } from "../core/select";
 import { selectOptions } from "../core/select";
+import { stepProgress } from "../core/steps";
 import type { Period } from "../core/rollup";
 import { dayKey, fromDayKey } from "../core/time";
-import type { Cadence, ItemState, State } from "../core/types";
+import type { BvStep, Cadence, ItemState, State } from "../core/types";
 import type { EventStore } from "../shell/storage";
-import { catColor, esc, fmtMin } from "./format";
+import { catColor, esc, fmtClock, fmtMin, isWebLink, safeHref } from "./format";
 import type { HistoryModel } from "./history";
 import { chartSvg, historyHtml, historyModel, tooltipHtml } from "./history";
+import type { PickerState } from "./picker";
+import {
+  initPicker,
+  moveNode,
+  pickNodesHtml,
+  pickerHtml,
+  pickerSteps,
+  selectedCount,
+  slugify,
+  toggleNode,
+} from "./picker";
 
 /** Omit distributed over the event union (plain Omit collapses a union to its
  * common properties, losing every kind-specific payload). */
@@ -25,10 +38,13 @@ interface UiState {
   openItem?: string;
   logItem?: string;
   cadenceItem?: string;
+  checkinItem?: string;
   logPanelCat?: string;
   addOpen: boolean;
   status: string;
   statusError: boolean;
+  /** Active branching-video import (ADR-0004); undefined = not importing. */
+  picker?: PickerState;
   /** History view controls (the log itself is the durable part). */
   histPeriod: Period;
   histFocus: string;
@@ -81,6 +97,22 @@ export async function startApp(
     render();
   }
 
+  /** Update the status line *without* re-rendering — for validation messages
+   * on an open form, where a re-render would wipe the values typed into it
+   * (the forms are DOM-held by design). Falls back to a render if the status
+   * node isn't on the page. */
+  function sayInPlace(status: string): void {
+    ui.status = status;
+    ui.statusError = true;
+    const el = root.querySelector<HTMLElement>("p.status");
+    if (el === null) {
+      render();
+      return;
+    }
+    el.textContent = status;
+    el.classList.add("error");
+  }
+
   // ── view helpers ─────────────────────────────────────────────────────────
 
   function categoriesOf(s: State): string[] {
@@ -97,6 +129,11 @@ export async function startApp(
     return m ? decodeURIComponent(m[1] ?? "") : undefined;
   }
 
+  function itemRoute(): string | undefined {
+    const m = /^#item\/(.+)$/.exec(location.hash);
+    return m ? decodeURIComponent(m[1] ?? "") : undefined;
+  }
+
   function chipFor(entry: SelectionEntry): string {
     if (entry.orange) return `<span class="chip overdue">time went by</span>`;
     switch (entry.reason) {
@@ -110,6 +147,34 @@ export async function startApp(
       case "due":
         return "";
     }
+  }
+
+  /** Compact at-a-glance "step k/n" chip for a BV item (current step title as
+   * hover text); empty for non-BV items. */
+  function stepChip(item: ItemState): string {
+    const p = stepProgress(item);
+    if (p === undefined) return "";
+    const label =
+      p.current !== undefined
+        ? `step ${String(p.index + 1)}/${String(p.total)}`
+        : `${String(p.total)} steps`;
+    return `<span class="chip step" title="${esc(p.current?.title ?? "")}">${label}</span>`;
+  }
+
+  /** The step context + advance control shown inside a BV item's expanded
+   * verbs: where you are now, and the button that moves to the next step. */
+  function stepControl(item: ItemState): string {
+    const p = stepProgress(item);
+    if (p === undefined) return "";
+    const now =
+      p.current !== undefined
+        ? `<span class="stepnow">now: <b>${esc(p.current.title)}</b> · step ${String(p.index + 1)}/${String(p.total)}</span>`
+        : `<span class="stepnow">${String(p.total)} steps · not started</span>`;
+    const advance =
+      p.next !== undefined
+        ? `<button class="do" data-action="advance" data-item="${esc(item.id)}">Advance to ${esc(p.next.title)} →</button>`
+        : `<span class="chip">final step</span>`;
+    return `<span class="stepctl">${now}${advance}</span>`;
   }
 
   function verbsFor(item: ItemState): string {
@@ -149,6 +214,7 @@ export async function startApp(
       : `<button class="do" data-action="hold" data-item="${esc(item.id)}">Hold on list</button>`;
     return `
       <span class="allverbs">
+        ${stepControl(item)}
         <button class="do" data-action="start" data-item="${esc(item.id)}">Start</button>
         <button class="do" data-action="open-log" data-item="${esc(item.id)}">Log time…</button>
         ${holdVerb}
@@ -164,7 +230,8 @@ export async function startApp(
     return `
       <li class="item">
         <button class="do" data-action="done" data-item="${esc(it.id)}">Done</button>
-        <span class="name"><b>${esc(it.name)}</b><small>${esc(sub)}</small></span>
+        <span class="name"><a class="itemlink" href="#item/${encodeURIComponent(it.id)}"><b>${esc(it.name)}</b></a><small>${esc(sub)}</small></span>
+        ${stepChip(it)}
         ${chipFor(entry)}
         <button class="more" data-action="toggle-verbs" data-item="${esc(it.id)}"
           aria-label="More actions for ${esc(it.name)}" aria-expanded="${String(ui.openItem === it.id)}">⋯</button>
@@ -310,10 +377,11 @@ export async function startApp(
       <section class="firstrun">
         <h2>Nothing in rotation yet</h2>
         <p>cycle-in surfaces what to practice or revisit right now — old skills cycling back
-        in, new ones building momentum. Add your first item, or import an event bundle
-        exported from another device.</p>
+        in, new ones building momentum. Add your first item, import a branching-video, or
+        import an event bundle exported from another device.</p>
         <p>
           <button class="do" data-action="open-add">Add an item…</button>
+          <button class="do" data-action="import-video">Import a video…</button>
           <button class="do" data-action="import">Import bundle…</button>
         </p>
       </section>`;
@@ -323,8 +391,17 @@ export async function startApp(
 
   function render(): void {
     const now = new Date();
+    if (ui.picker !== undefined) {
+      renderPicker(ui.picker);
+      return;
+    }
     if (location.hash === "#history") {
       renderHistory(now);
+      return;
+    }
+    const detailId = itemRoute();
+    if (detailId !== undefined) {
+      renderItemDetail(detailId);
       return;
     }
     histModel = undefined;
@@ -358,7 +435,8 @@ export async function startApp(
         return `
           <div class="card${e.orange ? " overdue" : ""}">
             <span class="dot" style="background:${catColor(it.category, cats)}"></span>
-            <span class="what"><b>${esc(it.name)}</b><small>${flavor}</small></span>
+            <span class="what"><a class="itemlink" href="#item/${encodeURIComponent(it.id)}"><b>${esc(it.name)}</b></a><small>${flavor}</small></span>
+            ${stepChip(it)}
             <button class="do" data-action="done" data-item="${esc(it.id)}">Done</button>
             <button class="more" data-action="toggle-verbs" data-item="${esc(it.id)}"
               aria-label="More actions for ${esc(it.name)}" aria-expanded="${String(ui.openItem === it.id)}">⋯</button>
@@ -390,9 +468,11 @@ export async function startApp(
             ${focusNav}
             <a href="#history">History</a>
             <button data-action="open-add">Add item…</button>
+            <button data-action="import-video">Import video…</button>
             <button data-action="export">Export events</button>
             <button data-action="import">Import bundle…</button>
             <input id="import-file" type="file" accept=".json,application/json" hidden />
+            <input id="video-file" type="file" accept=".json,application/json" hidden />
           </nav>
         </div>
         <p class="status${ui.statusError ? " error" : ""}" role="status">${esc(ui.status)}</p>
@@ -412,6 +492,209 @@ export async function startApp(
       </div>`;
 
     recordImpressions(selection, now);
+  }
+
+  function renderPicker(p: PickerState): void {
+    const cats = categoriesOf(state);
+    root.innerHTML = `
+      <div class="board">
+        <div class="top">
+          <h1><a href="#" data-action="close-picker">cycle-in</a></h1>
+          <span class="date">import a video</span>
+          <nav><button data-action="close-picker">← board</button></nav>
+        </div>
+        <p class="status${ui.statusError ? " error" : ""}" role="status">${esc(ui.status)}</p>
+        ${pickerHtml(p, cats)}
+      </div>`;
+  }
+
+  /** Targeted refresh of just the node list + step count — leaves the
+   * metadata form's typed-in values alone (they live in the DOM, not state). */
+  function refreshPickNodes(): void {
+    const p = ui.picker;
+    if (p === undefined) return;
+    const ol = root.querySelector<HTMLElement>("#picknodes");
+    if (ol) ol.innerHTML = pickNodesHtml(p);
+    const count = root.querySelector<HTMLElement>("#pickcount");
+    if (count) count.textContent = String(selectedCount(p));
+  }
+
+  function stepCoords(s: BvStep): string {
+    if (s.start === undefined) return "";
+    return s.end !== undefined
+      ? `${fmtClock(s.start)}–${fmtClock(s.end)}`
+      : `from ${fmtClock(s.start)}`;
+  }
+
+  /** The ordered steps of a BV item, current one highlighted, with jump/advance
+   * controls. Empty for a non-BV item. */
+  function stepsPanel(item: ItemState): string {
+    const p = stepProgress(item);
+    if (p === undefined) return "";
+    const rows = p.steps
+      .map((s, i) => {
+        const on = i === p.index;
+        const coords = stepCoords(s);
+        const ctl = on
+          ? `<span class="chip step">current</span>`
+          : `<button class="do" data-action="set-step" data-item="${esc(item.id)}" data-node="${esc(s.nodeId)}">go here</button>`;
+        return `
+          <li class="detstep${on ? " on" : ""}">
+            <span class="stepno mono">${String(i + 1)}</span>
+            <span class="name"><b>${esc(s.title)}</b>${coords !== "" ? `<small>${esc(coords)}</small>` : ""}</span>
+            ${ctl}
+          </li>`;
+      })
+      .join("");
+    const advance =
+      p.next !== undefined
+        ? `<button class="do" data-action="advance" data-item="${esc(item.id)}">Advance to ${esc(p.next.title)} →</button>`
+        : `<span class="chip">on the final step</span>`;
+    const where =
+      p.current !== undefined
+        ? `on step ${String(p.index + 1)} of ${String(p.total)}`
+        : `${String(p.total)} steps · not started`;
+    return `
+      <section class="panel steps">
+        <header><h2>steps</h2><span class="sub">${where}</span></header>
+        <ol class="detsteps">${rows}</ol>
+        <p class="paneltools">${advance}</p>
+      </section>`;
+  }
+
+  /** This item's logged time / check-ins, newest day first. A check-in (an
+   * entry carrying a `nodeId`) is labelled with the step it documents. */
+  function itemLogList(item: ItemState): string {
+    const entries = state.logEntries
+      .filter((l) => l.itemId === item.id)
+      .sort((a, b) => (a.effectiveDay < b.effectiveDay ? 1 : -1));
+    if (entries.length === 0) {
+      return `<p class="empty">Nothing logged against this yet.</p>`;
+    }
+    const stepLabel = new Map(
+      (item.bvSource?.steps ?? []).map(
+        (s, i) => [s.nodeId, `step ${String(i + 1)} · ${s.title}`] as const
+      )
+    );
+    const rows = entries
+      .map((l) => {
+        const bits = [
+          l.minutes !== undefined ? fmtMin(l.minutes) : "",
+          l.reps !== undefined ? `${String(l.reps)} reps` : "",
+          l.notes ?? "",
+        ]
+          .filter((x) => x !== "")
+          .map((x) => esc(x))
+          .join(" · ");
+        const step =
+          l.nodeId !== undefined
+            ? `<span class="chip step">${esc(stepLabel.get(l.nodeId) ?? "step")}</span>`
+            : "";
+        // A non-web link (an old entry, or one merged in from another device)
+        // is shown inert rather than as an anchor that silently goes nowhere.
+        const link =
+          l.link === undefined
+            ? ""
+            : isWebLink(l.link)
+              ? ` <a href="${esc(safeHref(l.link))}" target="_blank" rel="noopener noreferrer">link ↗</a>`
+              : ` <span class="deadlink" title="${esc(l.link)}">link (not a web address)</span>`;
+        return `<li><span class="when mono">${esc(l.effectiveDay)}</span> ${step} <span class="what">${bits}</span>${link}</li>`;
+      })
+      .join("");
+    return `<ul class="detlog">${rows}</ul>`;
+  }
+
+  /** The check-in capture form (a `time-logged` with a link + the current
+   * step's node id); shown when its item's form is open. */
+  function checkinForm(item: ItemState): string {
+    const p = stepProgress(item);
+    const target =
+      p?.current !== undefined
+        ? `attaches to step ${String(p.index + 1)} · ${esc(p.current.title)}`
+        : "attaches to this time-option";
+    return `
+      <form class="inline-form" data-form="checkin" data-item="${esc(item.id)}">
+        <label>link <input type="url" name="link" required pattern="https?://.*"
+          title="a web address starting with http:// or https://" placeholder="https://…" /></label>
+        <label>note <input type="text" name="notes" maxlength="200" /></label>
+        <label>minutes <input type="number" name="minutes" min="1" max="1440" /></label>
+        <button class="do" type="submit">Save check-in</button>
+        <button class="do" type="button" data-action="close-forms">Cancel</button>
+        <span class="checkin-hint micro">${target}</span>
+      </form>`;
+  }
+
+  function renderItemDetail(id: string): void {
+    const item = state.items[id];
+    const topBar = `
+      <div class="top">
+        <h1><a href="#">cycle-in</a></h1>
+        <span class="date">time-option</span>
+        <nav><a href="#">← board</a></nav>
+      </div>
+      <p class="status${ui.statusError ? " error" : ""}" role="status">${esc(ui.status)}</p>`;
+    if (item === undefined) {
+      root.innerHTML = `
+        <div class="board">
+          ${topBar}
+          <section class="firstrun">
+            <h2>Not found</h2>
+            <p>That time-option doesn't exist (it may have been removed).</p>
+            <p><a href="#">← back to the board</a></p>
+          </section>
+        </div>`;
+      return;
+    }
+    const cats = categoriesOf(state);
+    const sub =
+      item.subCategory !== undefined ? ` · ${esc(item.subCategory)}` : "";
+    const holdVerb = item.held
+      ? `<button class="do" data-action="release" data-item="${esc(item.id)}">Release hold</button>`
+      : `<button class="do" data-action="hold" data-item="${esc(item.id)}">Hold on list</button>`;
+    const archiveVerb = item.archived
+      ? `<button class="do" data-action="unarchive" data-item="${esc(item.id)}">Unarchive</button>`
+      : `<button class="do" data-action="archive" data-item="${esc(item.id)}">Archive</button>`;
+    const show =
+      item.bvSource !== undefined
+        ? `<span class="sub">from ${esc(item.bvSource.showTitle)}</span>`
+        : "";
+    root.innerHTML = `
+      <div class="board">
+        ${topBar}
+        <section class="balance detail">
+          <div class="head">
+            <span class="micro">Time-option</span>
+            ${item.archived ? `<span class="chip">archived</span>` : ""}
+          </div>
+          <h2 class="detname">
+            <span class="dot" style="background:${catColor(item.category, cats)}"></span>
+            ${esc(item.name)}
+          </h2>
+          <p class="detmeta">${esc(item.category)}${sub} · ${esc(cadenceLabel(item.cadence))} ${show}</p>
+          <div class="allverbs">
+            <button class="do" data-action="done" data-item="${esc(item.id)}">Done</button>
+            <button class="do" data-action="start" data-item="${esc(item.id)}">Start</button>
+            ${holdVerb}
+            <button class="do" data-action="open-log" data-item="${esc(item.id)}">Log time…</button>
+            <button class="do" data-action="open-cadence" data-item="${esc(item.id)}">Change cadence…</button>
+            ${archiveVerb}
+          </div>
+          ${verbsFor(item)}
+        </section>
+        ${stepsPanel(item)}
+        <section class="panel">
+          <header>
+            <h2>logged time &amp; check-ins</h2>
+            ${
+              ui.checkinItem === item.id
+                ? ""
+                : `<button class="do" data-action="open-checkin" data-item="${esc(item.id)}">Add check-in…</button>`
+            }
+          </header>
+          ${ui.checkinItem === item.id ? checkinForm(item) : ""}
+          ${itemLogList(item)}
+        </section>
+      </div>`;
   }
 
   function renderHistory(now: Date): void {
@@ -499,6 +782,7 @@ export async function startApp(
     delete ui.openItem;
     delete ui.logItem;
     delete ui.cadenceItem;
+    delete ui.checkinItem;
     delete ui.logPanelCat;
     ui.addOpen = false;
   }
@@ -520,6 +804,20 @@ export async function startApp(
     a.click();
     URL.revokeObjectURL(url);
     say(`exported ${String(events.length)} events`);
+  }
+
+  async function loadVideoConfig(file: File): Promise<void> {
+    try {
+      const show = parseBvConfig(await file.text());
+      ui.picker = initPicker(show);
+      say(`loaded "${show.title}" — choose which nodes are steps`);
+    } catch (err) {
+      delete ui.picker;
+      say(
+        `couldn't read that config: ${err instanceof Error ? err.message : String(err)}`,
+        true
+      );
+    }
   }
 
   async function doImport(file: File): Promise<void> {
@@ -550,35 +848,113 @@ export async function startApp(
     const itemId = target.dataset["item"];
     const cat = target.dataset["cat"];
     const now = new Date();
-    const run = (input: EventInput): void => {
+    const nameOf = (id: string | undefined): string =>
+      (id !== undefined ? state.items[id]?.name : undefined) ?? "that";
+    /** Every verb reports what it did. The status line is shared and sticky, so
+     * a verb that says nothing would leave the *previous* message standing —
+     * which reads as confirmation of the wrong action. */
+    const run = (input: EventInput, message: string): void => {
       closeForms();
+      ui.status = message;
+      ui.statusError = false;
+      void dispatch(input); // dispatch re-renders, picking up the status above
+    };
+    /** Walking steps is a repeated action — keep the expanded verb row open so
+     * advancing several steps from the board doesn't mean re-opening ⋯ each
+     * time. (The detail view's steps panel is always visible, so this is a
+     * no-op there.) */
+    const runKeepingVerbs = (input: EventInput, message: string): void => {
+      const open = ui.openItem;
+      closeForms();
+      if (open !== undefined) ui.openItem = open;
+      ui.status = message;
+      ui.statusError = false;
       void dispatch(input);
     };
 
     switch (action) {
       case "done":
         if (itemId !== undefined)
-          run({ kind: "item-done", itemId, effectiveDate: dayKey(now) });
+          run(
+            { kind: "item-done", itemId, effectiveDate: dayKey(now) },
+            `marked "${nameOf(itemId)}" done for today`
+          );
         break;
       case "start":
-        if (itemId !== undefined) run({ kind: "item-started", itemId });
+        if (itemId !== undefined)
+          run(
+            { kind: "item-started", itemId },
+            `started "${nameOf(itemId)}" — mark it done when you finish`
+          );
         break;
       case "hold":
-        if (itemId !== undefined) run({ kind: "item-held", itemId });
+        if (itemId !== undefined)
+          run(
+            { kind: "item-held", itemId },
+            `holding "${nameOf(itemId)}" on the list until you release it`
+          );
         break;
       case "release":
-        if (itemId !== undefined) run({ kind: "item-released", itemId });
+        if (itemId !== undefined)
+          run(
+            { kind: "item-released", itemId },
+            `released "${nameOf(itemId)}" — back on its normal cadence`
+          );
         break;
       case "dismiss":
         if (itemId !== undefined)
-          run({ kind: "dismissed-today", itemId, date: dayKey(now) });
+          run(
+            { kind: "dismissed-today", itemId, date: dayKey(now) },
+            `"${nameOf(itemId)}" is off today's list — back tomorrow`
+          );
         break;
       case "bump":
         if (itemId !== undefined)
-          run({ kind: "priority-bumped", itemId, forDate: tomorrow(now) });
+          run(
+            { kind: "priority-bumped", itemId, forDate: tomorrow(now) },
+            `"${nameOf(itemId)}" is bumped up for tomorrow`
+          );
         break;
       case "archive":
-        if (itemId !== undefined) run({ kind: "item-archived", itemId });
+        if (itemId !== undefined)
+          run(
+            { kind: "item-archived", itemId },
+            `archived "${nameOf(itemId)}" — its logged time is kept`
+          );
+        break;
+      case "advance": {
+        if (itemId === undefined) break;
+        const it = state.items[itemId];
+        const p = it !== undefined ? stepProgress(it) : undefined;
+        // `index` is the *current* step (-1 before the first advance), so the
+        // step being moved to displays as `index + 2`.
+        if (p?.next !== undefined)
+          runKeepingVerbs(
+            { kind: "bv-node-advanced", itemId, nodeId: p.next.nodeId },
+            `now on step ${String(p.index + 2)}/${String(p.total)} — ${p.next.title}`
+          );
+        break;
+      }
+      case "set-step": {
+        const node = target.dataset["node"];
+        if (itemId === undefined || node === undefined) break;
+        const it = state.items[itemId];
+        const at =
+          it !== undefined
+            ? (stepProgress(it)?.steps.findIndex((s) => s.nodeId === node) ?? -1)
+            : -1;
+        runKeepingVerbs(
+          { kind: "bv-node-advanced", itemId, nodeId: node },
+          at >= 0 ? `jumped to step ${String(at + 1)}` : "moved to that step"
+        );
+        break;
+      }
+      case "unarchive":
+        if (itemId !== undefined)
+          run(
+            { kind: "item-unarchived", itemId },
+            `unarchived "${nameOf(itemId)}" — it's back in rotation`
+          );
         break;
       case "toggle-verbs": {
         const open = ui.openItem === itemId;
@@ -595,6 +971,11 @@ export async function startApp(
       case "open-cadence":
         closeForms();
         if (itemId !== undefined) ui.cadenceItem = itemId;
+        render();
+        break;
+      case "open-checkin":
+        closeForms();
+        if (itemId !== undefined) ui.checkinItem = itemId;
         render();
         break;
       case "open-panel-log":
@@ -617,6 +998,24 @@ export async function startApp(
       case "import":
         root.querySelector<HTMLInputElement>("#import-file")?.click();
         break;
+      case "import-video":
+        root.querySelector<HTMLInputElement>("#video-file")?.click();
+        break;
+      case "close-picker":
+        e.preventDefault();
+        delete ui.picker;
+        closeForms();
+        render();
+        break;
+      case "pick-up":
+      case "pick-down": {
+        const node = target.dataset["node"];
+        if (ui.picker !== undefined && node !== undefined) {
+          moveNode(ui.picker, node, action === "pick-up" ? -1 : 1);
+          refreshPickNodes();
+        }
+        break;
+      }
       case "unfocus":
         e.preventDefault();
         location.hash = "";
@@ -636,9 +1035,23 @@ export async function startApp(
 
   root.addEventListener("change", (e) => {
     const input = e.target as HTMLInputElement;
+    if (input.dataset["action"] === "pick-toggle") {
+      const node = input.dataset["node"];
+      if (ui.picker !== undefined && node !== undefined) {
+        toggleNode(ui.picker, node);
+        refreshPickNodes();
+      }
+      return;
+    }
     if (input.id === "hist-focus") {
       ui.histFocus = input.value;
       render();
+      return;
+    }
+    if (input.id === "video-file") {
+      const vf = input.files?.[0];
+      input.value = ""; // let the same file be re-picked later
+      if (vf) void loadVideoConfig(vf);
       return;
     }
     if (input.id !== "import-file") return;
@@ -693,6 +1106,10 @@ export async function startApp(
         ),
       ];
       closeForms();
+      // Status set before dispatch — dispatch renders, so this lands in one
+      // pass (and no verb leaves the previous message standing).
+      ui.status = `logged ${fmtMin(minutes)} to ${item?.name ?? category}`;
+      ui.statusError = false;
       void dispatch({
         kind: "time-logged",
         entryId: crypto.randomUUID(),
@@ -709,12 +1126,15 @@ export async function startApp(
       if (itemId === undefined) return;
       const cadKind = str("kind") as Cadence["kind"];
       const atTime = timeOf("time");
+      const cadName = state.items[itemId]?.name ?? "that";
       closeForms();
-      void dispatch({
-        kind: "cadence-changed",
-        itemId,
-        cadence: { kind: cadKind, ...(atTime !== undefined ? { atTime } : {}) },
-      });
+      const cad: Cadence = {
+        kind: cadKind,
+        ...(atTime !== undefined ? { atTime } : {}),
+      };
+      ui.status = `"${cadName}" is now ${cadenceLabel(cad)}`;
+      ui.statusError = false;
+      void dispatch({ kind: "cadence-changed", itemId, cadence: cad });
     } else if (kind === "add") {
       const name = str("name");
       const category = str("category");
@@ -722,6 +1142,8 @@ export async function startApp(
       const subCategory = str("subCategory") !== "" ? str("subCategory") : undefined;
       const atTime = timeOf("time");
       closeForms();
+      ui.status = `added "${name}" to ${category}`;
+      ui.statusError = false;
       void dispatch({
         kind: "item-added",
         item: {
@@ -735,6 +1157,76 @@ export async function startApp(
           ...(subCategory !== undefined ? { subCategory } : {}),
         },
       });
+    } else if (kind === "picker") {
+      const p = ui.picker;
+      if (p === undefined) return;
+      const name = str("name");
+      const category = str("category");
+      if (name === "" || category === "") return;
+      const subCategory =
+        str("subCategory") !== "" ? str("subCategory") : undefined;
+      const atTime = timeOf("time");
+      const steps = pickerSteps(p);
+      delete ui.picker;
+      closeForms();
+      void dispatch({
+        kind: "item-added",
+        item: {
+          id: crypto.randomUUID(),
+          name,
+          category,
+          cadence: {
+            kind: str("kind") as Cadence["kind"],
+            ...(atTime !== undefined ? { atTime } : {}),
+          },
+          ...(subCategory !== undefined ? { subCategory } : {}),
+          // Always carried, even with no steps chosen: this came from a video,
+          // and the provenance is worth keeping (an empty `steps` just means
+          // "no step sequence" — `stepProgress` returns undefined for it).
+          bvSource: {
+            showId: slugify(p.show.title),
+            showTitle: p.show.title,
+            steps,
+          },
+        },
+      });
+      const n = steps.length;
+      say(
+        n > 0
+          ? `added "${name}" — ${String(n)} step${n === 1 ? "" : "s"}, starting at step 1`
+          : `added "${name}" — no steps chosen, so it has no step sequence`
+      );
+    } else if (kind === "checkin") {
+      const itemId = form.dataset["item"];
+      const item = itemId !== undefined ? state.items[itemId] : undefined;
+      const link = str("link");
+      if (item === undefined || link === "") return;
+      // `type="url"` happily accepts `javascript:`/`data:`/`mailto:`, so the
+      // http(s)-only rule is enforced here too. The form stays open (and its
+      // typed-in values with it) so the link can be fixed.
+      if (!isWebLink(link)) {
+        sayInPlace("a check-in link needs to start with http:// or https://");
+        return;
+      }
+      const minutes = num("minutes");
+      const notes = str("notes") !== "" ? str("notes") : undefined;
+      const nodeId = item.currentNodeId;
+      closeForms();
+      void dispatch({
+        kind: "time-logged",
+        entryId: crypto.randomUUID(),
+        category: item.category,
+        itemId: item.id,
+        effectiveDate: dayKey(now),
+        link,
+        ...(nodeId !== undefined ? { nodeId } : {}),
+        ...(minutes !== undefined ? { minutes } : {}),
+        ...(item.subCategory !== undefined
+          ? { subCategory: item.subCategory }
+          : {}),
+        ...(notes !== undefined ? { notes } : {}),
+      });
+      say("check-in saved");
     }
   });
 

@@ -45,3 +45,5 @@ MADR-lite form below.
 | [0001](0001-provable-lite-strict-ts-and-property-tests-no-rust-core.md) | Provable-lite — strict TypeScript + property tests, no Rust/WASM core | Accepted |
 | [0002](0002-npm-supply-chain-discipline.md) | npm-ecosystem supply-chain discipline | Accepted |
 | [0003](0003-append-only-event-log-core.md) | Append-only event log core, calendar-period cadences, category-balanced selection | Accepted |
+| [0004](0004-branching-video-import-time-options-steps-check-ins.md) | Branching-video import — time-options, step sequences, and check-ins | Accepted |
+| [0005](0005-interval-cadence-foreground-reminders-snooze.md) | Interval/session cadence, foreground reminders, and snooze (amends ADR-0003) | Proposed |

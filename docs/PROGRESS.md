@@ -1,10 +1,24 @@
 # Progress & Status
 
-_Last updated: 2026-07-12_
+_Last updated: 2026-07-18_
 
 ## Status / next
 
-**Status:** Repo scaffolded, pushed, and **confirmed live**: https://randallard.github.io/cycle-in/
+**Now (2026-07-18) — a working app, not a stub, and now driven end to end in a browser.** The
+board (direction B "balance board"), the `#history` view, the IndexedDB event store, and
+export/import all work, and **Phase 1 of the branching-video arc is done and verified**: import a
+video's `config.json`, pick/reorder its steps, walk them (advance / jump), and attach per-step
+check-in links — all on the append-only event log. The 2026-07-18 in-browser pass drove the whole
+slice (both config shapes, the error paths, reload, and an export → wipe → re-import round-trip)
+and produced **four fixes** the 104 green tests couldn't have caught: zero-step imports silently
+dropped their video provenance, the board's verb row collapsed on every advance, a blocked
+`javascript:` link still rendered as a clickable anchor, and most verbs left the *previous*
+status message standing. 113 tests; `pnpm build` + lint clean. Still uncommitted pending Ryan's
+own look. **Next up: Phase 2** — the `interval` cadence ("every 50 min"), snooze, and the
+live-refreshing list (ADR-0005). The paragraphs below are the accreted history, oldest first.
+
+**Status (2026-07-08, scaffolding era — superseded by the entries below):** Repo scaffolded,
+pushed, and **confirmed live**: https://randallard.github.io/cycle-in/
 (HTTP 200, verified directly with `curl`, not just a green CI checkmark) — Vite + TypeScript
 strict + ESLint + Vitest + `fast-check`, a minimal proof-of-life page, CI (build/test/lint, a
 supply-chain job, OSV-Scanner, GitHub Pages deploy), and this docs set. Two real CI bugs found
@@ -86,16 +100,99 @@ table view). Verified end to end headlessly via a seeded-IndexedDB smoke page
 (`prototypes/_smoke-history.html`, dev-only, seeds its own `smoke-history` DB — handy for
 demoing the history view with data; delete freely).
 
-**Next build steps, in order:**
-- **Rest of the UI** — the item-management view (rename / recategorize / unarchive — the
-  events exist, archive-verb-only in the UI so far), the recent-suggestions review
-  (impressions are being recorded already), and PWA manifest/service worker (worklist #5).
-- **The branching-video integration** — import with category assignment, the onboarding/review
-  screen, and "advance to next node" (`bv-node-advanced` events exist; the config-graph parse
-  and UI don't yet).
-- **YouTube playlist integration** — playlist config, fetch, per-playlist
-  not-yet-incorporated counts feeding the Planning section, and importing a video as an item
-  (needs the API-access design decision first).
+**2026-07-17 session: planned the video-import → steps → intervals → reminders arc.**
+Design only, no code. Ryan described his most-wanted next flow ("take a video I like, add it,
+track which step I'm on, come up every 50 minutes, ding at me, let me snooze"); pulled apart
+it's six flows, most already boned in the ADR-0003 model. Naming decided: list items are now
+**"time-options"** (was the placeholder "items"). Two forks Ryan called: **reminders are
+foreground-only for v1** (a static Pages PWA can't reliably ding when closed/locked — no push
+server, wake-a-closed-PWA APIs are Android-only; foreground sound+notification while open is
+honest and iPhone-safe), and **build order is import-first**. Written up as
+[ADR-0004](adr/0004-branching-video-import-time-options-steps-check-ins.md) (import model:
+BV `config.json` parser, time-options carrying step sequences, check-ins as `time-logged` +
+`nodeId`) and [ADR-0005](adr/0005-interval-cadence-foreground-reminders-snooze.md) (an
+`interval` cadence alongside the calendar kinds — amends ADR-0003's "no elapsed" stance for
+this one explicit intent — plus a `snoozed` event and foreground reminders). Both **Proposed**:
+model shapes await Ryan's local review. Full narrative:
+[`journal/2026-07-17-1-video-import-steps-intervals-and-reminders.md`](journal/2026-07-17-1-video-import-steps-intervals-and-reminders.md).
+
+**2026-07-17 (implementation): Phase 1 shipped (branching-video import + steps + check-ins).**
+The whole import-first slice is built and green (104 tests, `pnpm build` clean; pending Ryan's
+in-browser verification, uncommitted per his rule). See the
+[2026-07-17-2 journal entry](journal/2026-07-17-2-phase-1-branching-video-import-steps-check-ins.md)
+for the narrative.
+
+**2026-07-18: Phase 1 driven in a browser — four fixes the tests couldn't catch.** Ran the whole
+slice headlessly against `pnpm dev` (import both config shapes → pick/reorder → add → advance →
+jump → check in → reload → export → wipe → re-import), plus the malformed-config and
+wrong-file-type error paths. The slice held on the first drive; what driving it added was four
+defects living in the gap between "the event was appended" and "the person can tell what
+happened":
+1. **Zero-step import dropped the video provenance** — the picker guarded the whole `bvSource`
+   behind `steps.length > 0`, so unchecking every node produced a plain time-option with no
+   record it came from a video. `bvSource` is now always committed; empty `steps: []` just means
+   "no step sequence" (`stepProgress` already returns `undefined` for it).
+2. **The board's `⋯` verb row collapsed on every advance** — `run()` calls `closeForms()`, so
+   walking steps meant re-expanding each time. New `runKeepingVerbs` preserves `ui.openItem` for
+   `advance`/`set-step` only. Matters for Phase 2, where the board *is* the every-50-minutes
+   surface.
+3. **A blocked link still rendered as an anchor** — `safeHref` neutralized `javascript:` to
+   `href="#"`, but the link looked normal and silently went nowhere. New `isWebLink` predicate
+   (which `safeHref` now delegates to); non-web links render inert, and the check-in form rejects
+   them at capture (`pattern="https?://.*"` plus a JS guard — `type="url"` accepts `javascript:`).
+4. **The status line was sticky and mostly unwritten** — a stale message next to a fresh action
+   reads as confirmation of that action. `run(input, message)` now *requires* a confirmation, so
+   a verb can't be added without one; every verb reports what it did. New `sayInPlace` updates
+   the status without a re-render, for validation on an open (DOM-held) form.
+
+104 → 113 tests. Full narrative:
+[2026-07-18-1 journal entry](journal/2026-07-18-1-phase-1-browser-verification-and-fixes.md).
+Also added `.claude/skills/verify/SKILL.md` — the launch/drive recipe (isolated port and
+IndexedDB origin, `playwright-core` against the system Chromium, hash routes, the hidden
+file-input trick) so the next in-browser pass skips the cold start.
+
+**Next build steps — the import-first phased plan (ADR-0004, ADR-0005):**
+- **Phase 1 — branching-video import + steps + check-ins — ✅ DONE.** The full "import a video,
+  walk its steps, attach progress links" loop, on existing calendar cadences:
+  - **Parser** (`src/core/bvimport.ts`) — tolerant read of BV's `config.json` node graph,
+    separate from the event-bundle parser; handles both branching shows (default-choice spine)
+    and the real flat single-video tutorial shape (file-order fallback); `stepsFromNodes`
+    resolves each step's video coordinates.
+  - **Picker** (`src/ui/picker.ts` + app.ts) — "Import video…" → file-picker → node picker with
+    suggested steps preselected, toggle + reorder; commits one `item-added`.
+  - **Model** — `BvStep`/`BvSource` in `types.ts`; `bvSource.steps[]`; reducer seeds
+    `currentNodeId` at step 1 and `bv-node-advanced` moves it (legacy pre-`steps` bvSource
+    tolerated).
+  - **Advance verb** (`src/core/steps.ts` `stepProgress`) — `step k/n` chip on the board and a
+    "now … · Advance to <next> →" control; a fresh/stale item's `next` is step 1 so advancing
+    starts the sequence.
+  - **Detail view** (`#item/<id>`, reached from the item name) — metadata, the ordered steps
+    with jump ("go here") / advance, the management verbs (done / start / hold / log / cadence /
+    archive / **unarchive** — closes UI-flow gap #4's unarchive), and the item's logged-time &
+    check-in history.
+  - **Check-ins** — `nodeId` on `time-logged` (+ `log-corrected` patch); a link-capture form on
+    the detail view attaches a progress link to the current step; a link-only check-in logs no
+    minutes (no rollup impact); links must be http(s) — enforced at capture (form `pattern` +
+    a JS guard) and at render (`isWebLink`; non-web links show inert, never as a live anchor),
+    with `safeHref` as the last line of defence for anything reaching an href.
+- **Phase 2 — interval cadence + snooze + live list:** the `interval` cadence kind
+  (`everyMinutes`); elapsed due-ness; the `snoozed {itemId, until}` event and its two verbs
+  ("skip to next N" / "remind me in 25"); sub-day re-render (on load, on `visibilitychange`, on
+  a minute tick) while keeping calendar items day-stable and selection pure. The
+  cardistry-every-50-min loop works visually, no sound yet.
+- **Phase 3 — foreground reminders + PWA:** manifest + service worker (worklist #5); a
+  per-time-option reminder tone; Notification + audio ding on due / snooze-elapsed while the app
+  is open.
+
+**Deferred (not blocking the above):**
+- **Rest of the item-management verbs** — the detail view now carries done / start / hold / log
+  / cadence / archive / **unarchive**; **rename** and **recategorize** still have no UI (the
+  `item-renamed` / `item-recategorized` events exist). The detail view is the home for them.
+- **Recent-suggestions review** — impressions are being recorded already; the review screen that
+  surfaces "shown but never marked" isn't built.
+- **YouTube playlist integration** — playlist config, fetch, per-playlist not-yet-incorporated
+  counts feeding the Planning section, and importing a video as a time-option (needs the
+  API-access design decision below first).
 
 ## Provability
 
@@ -147,21 +244,36 @@ From a post-scaffold review session with Ryan; work through in order:
 Found by re-walking the described flow against the docs and the then-current
 `src/core/types.ts`. Status after the ADR-0003 core landed:
 
-1. ~~**General promote/demote-cadence flow**~~ — `cadence-changed` is a first-class event;
-   the UI verb still needs building, but the model gap is closed.
+1. ~~**General promote/demote-cadence flow**~~ — `cadence-changed` event **and** the UI verb
+   ("Change cadence…" inline form) both built.
 2. ~~**"Bump priority for tomorrow" missing from the model**~~ — `priority-bumped` event,
    one-shot for `forDate`, expires with the day.
 3. ~~**Calendar-day vs 24h-elapsed**~~ — strict calendar periods (daily / Monday-start week /
    calendar month); timed items due *at* their time. The drift is gone; tested.
-4. **No item-management view** — still open; UI work ("Next build steps").
-5. **Category consistency** — still open; UI work (pick-from-existing + add-new; a
-   `category-renamed` event is the eventual rename/merge mechanism).
+4. **Item-management view** — mostly closed by the Phase-1 detail view (`#item/<id>`: done /
+   start / hold / log / cadence / archive / **unarchive**); **rename** and **recategorize**
+   verbs still unbuilt (their events exist).
+5. **Category consistency** — partly addressed: add-item and the picker offer a category
+   datalist (pick-from-existing + add-new). A `category-renamed`/`item-recategorized` merge UI
+   is still unbuilt.
 6. ~~**"Not today"**~~ — `dismissed-today` event; excluded from that day's selection only.
 7. ~~**No edit/undo on log entries**~~ — `log-corrected` + `event-retracted` events.
-8. **Empty/first-run state** — still open; UI work.
+8. ~~**Empty/first-run state**~~ — built with the choices page (2026-07-10): a first-run panel
+   with Add / Import video / Import bundle.
 
 ## Open questions (deliberately unresolved)
 
+- **Import/step model sub-questions** (from ADR-0004) — _resolved during Phase 1:_ `showId` is a
+  slug of the show title (`slugify`); a check-in reuses `time-logged` + `nodeId` (no dedicated
+  `check-in` event). _Still open:_ multi-video shows (per-node `videoId` vs one `masterVideoId`
+  — the step shape carries both, works, but no UI showcases mixed videos yet); whether non-BV
+  time-options should also expose ad-hoc steps (the model would allow it); and whether the
+  flat-tutorial implied-`end` (from the next step's `start`) is worth surfacing in a player.
+- **Interval/reminder sub-questions** (new 2026-07-17, from ADR-0005) — snooze boundary
+  (relative `now + interval` for v1 vs clock-aligned :00/:50/…); quiet-hours so interval items
+  don't ding overnight; whether interval items also honor an `atTime` window; the reminder-tone
+  asset (a bundled set vs user-supplied). Cross-device: a snooze/interval clock is device-local
+  by nature — syncing snoozes is probably unwanted (noted, not solved).
 - **YouTube playlist access from a static site** (new 2026-07-10) — the Data API can read
   *public* playlists with just an API key (which is per-fork config and visible client-side —
   quota abuse is the risk to think through), but *private* playlists need OAuth. Decide the

@@ -37,6 +37,8 @@ export function reduce(events: readonly CycleEvent[]): State {
     switch (e.kind) {
       case "item-added": {
         const s = e.item;
+        // `?? []` also covers a pre-widening bvSource that predates `steps`.
+        const firstStep = (s.bvSource?.steps ?? [])[0]?.nodeId;
         state.items[s.id] = {
           id: s.id,
           name: s.name,
@@ -46,7 +48,12 @@ export function reduce(events: readonly CycleEvent[]): State {
           archived: false,
           ...(s.subCategory !== undefined ? { subCategory: s.subCategory } : {}),
           ...(s.bvSource !== undefined
-            ? { bvSource: s.bvSource, currentNodeId: s.bvSource.nodeId }
+            ? {
+                bvSource: s.bvSource,
+                ...(firstStep !== undefined
+                  ? { currentNodeId: firstStep }
+                  : {}),
+              }
             : {}),
         };
         break;
@@ -130,6 +137,7 @@ export function reduce(events: readonly CycleEvent[]): State {
           ...(e.subCategory !== undefined ? { subCategory: e.subCategory } : {}),
           ...(e.tags !== undefined && e.tags.length > 0 ? { tags: e.tags } : {}),
           ...(e.itemId !== undefined ? { itemId: e.itemId } : {}),
+          ...(e.nodeId !== undefined ? { nodeId: e.nodeId } : {}),
           ...(e.minutes !== undefined ? { minutes: e.minutes } : {}),
           ...(e.reps !== undefined ? { reps: e.reps } : {}),
           ...(e.notes !== undefined ? { notes: e.notes } : {}),
@@ -148,6 +156,7 @@ export function reduce(events: readonly CycleEvent[]): State {
             if (p.tags.length > 0) entry.tags = p.tags;
             else delete entry.tags;
           }
+          if (p.nodeId !== undefined) entry.nodeId = p.nodeId;
           if (p.minutes !== undefined) entry.minutes = p.minutes;
           if (p.reps !== undefined) entry.reps = p.reps;
           if (p.notes !== undefined) entry.notes = p.notes;

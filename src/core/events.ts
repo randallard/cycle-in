@@ -42,6 +42,10 @@ export type CycleEvent = EventBase &
          * (what tag rollups slice by). Empty arrays normalize to absent. */
         tags?: string[];
         itemId?: string;
+        /** A branching-video check-in: the step (node) this entry documents,
+         * so per-step progress links group under their step (ADR-0004).
+         * Absent for an ordinary time log. */
+        nodeId?: string;
         effectiveDate?: string;
         minutes?: number;
         reps?: number;
@@ -56,6 +60,7 @@ export type CycleEvent = EventBase &
           subCategory: string;
           /** Replaces the whole tag list; `[]` clears it. */
           tags: string[];
+          nodeId: string;
           minutes: number;
           reps: number;
           notes: string;

@@ -1,6 +1,6 @@
 # ADR-0002: npm-ecosystem supply-chain discipline
 - Status: Accepted
-- Date: 2026-07-08
+- Date: 2026-07-08 (amended 2026-07-18 — decision 10, the scope boundary of `ignore-scripts`)
 - Deciders: Ryan
 
 ## Context
@@ -76,6 +76,31 @@ build runs, not assumed from documentation.
 9. **No Socket.dev or equivalent risk-heuristic tool wired in yet** — flagged as worth adding
    (it's the piece that could catch an in-progress compromise, which audit/OSV can't, since
    they only know about already-disclosed CVEs), but not set up this round; revisit later.
+10. **Throwaway tooling installed *beside* the repo must pass `--ignore-scripts` explicitly**
+    (added 2026-07-18). Decision 1's `ignore-scripts=true` protects installs **into this
+    project** and nothing else. Verification tooling — headless-browser drivers, one-off
+    analysis scripts — is deliberately installed outside the repo so it never enters
+    `package.json` or the lockfile, and that same separation puts it outside `.npmrc`'s reach.
+
+    **Copying `.npmrc` into the scratch directory does not close this**, which is the part
+    worth writing down, because it's the obvious move and it fails silently: npm honours a
+    directory-local `.npmrc` only once that directory is a **package root**. A bare `npm i` in
+    an empty directory creates `package.json` *as part of* the install, and config is resolved
+    before that — so `ignore-scripts=true` sitting right there is never read.
+
+    Verified against a fixture package whose `postinstall` touches a file, rather than reasoned
+    from the docs (same standard as the tool failures above):
+
+    | Approach | `postinstall` |
+    |---|---|
+    | `.npmrc` copied into an empty dir, then `npm i` | **ran** |
+    | `npm i --ignore-scripts` | blocked |
+    | `package.json` seeded first, then `.npmrc`, then `npm i` | blocked |
+
+    So: pass the flag. Seeding `package.json` + `.npmrc` alongside it is worth doing so any
+    *later* install in that directory is covered, but the flag is the part that can't be
+    defeated by ordering. The recipe lives in `.claude/skills/verify/SKILL.md`, where the
+    installs actually happen.
 
 ## Consequences
 - Matches git-redundancy's supply-chain posture in spirit — advisories, licenses, sources,
@@ -90,3 +115,10 @@ build runs, not assumed from documentation.
 - Socket.dev (or equivalent) remains a real gap versus `cargo-vet`'s human-reviewed trust model
   — the closest thing to "is this specific package compromised right now," which nothing else
   here covers.
+- **The posture has an edge, and it's where the tooling is, not where the code is.** Decision 10
+  came from noticing after the fact that a verification session had run `npm i` in a scratch
+  directory with no protection in force. Nothing executed (the package declares no scripts), but
+  the gap was real, and the intuitive fix didn't work. Worth generalising: a control attached to
+  a *file in the repo* stops at the repo boundary, while the work doesn't — so any new habit
+  that installs something adjacent to the project needs its own answer, not an assumption that
+  the project's answer travels with it.

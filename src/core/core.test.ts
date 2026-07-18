@@ -14,7 +14,7 @@ import type { Period } from "./rollup";
 import { selectOptions } from "./select";
 import { dayKey, fromDayKey, seededShuffle, weekKey } from "./time";
 import type { Weekday } from "./time";
-import type { Cadence, State } from "./types";
+import type { BvSource, Cadence, State } from "./types";
 
 // --- event builder: unique ids, strictly increasing timestamps --------------
 
@@ -117,6 +117,67 @@ describe("reduce", () => {
     expect(reduce(b.events).items["cello"]!.cadence.kind).toBe("weekly");
   });
 
+  it("a branching-video import starts at step 1 and advances step by step", () => {
+    const bvSource: BvSource = {
+      showId: "cardistry",
+      showTitle: "Cardistry",
+      steps: [
+        { nodeId: "s1", title: "Step 1", videoId: "V", start: 0 },
+        { nodeId: "s2", title: "Step 2", videoId: "V", start: 38 },
+      ],
+    };
+    const events: CycleEvent[] = [
+      {
+        id: "add1",
+        at: "2026-06-01T00:00:01.000Z",
+        v: 1,
+        kind: "item-added",
+        item: {
+          id: "cards",
+          name: "Cardistry",
+          category: "cardistry",
+          cadence: { kind: "daily" },
+          bvSource,
+        },
+      },
+    ];
+    const started = reduce(events);
+    expect(started.items["cards"]?.bvSource?.steps).toHaveLength(2);
+    expect(started.items["cards"]?.currentNodeId).toBe("s1"); // step 1
+
+    events.push({
+      id: "adv1",
+      at: "2026-06-01T00:00:02.000Z",
+      v: 1,
+      kind: "bv-node-advanced",
+      itemId: "cards",
+      nodeId: "s2",
+    });
+    expect(reduce(events).items["cards"]?.currentNodeId).toBe("s2"); // step 2
+  });
+
+  it("tolerates a pre-widening bvSource with no steps (no crash, no step)", () => {
+    const events: CycleEvent[] = [
+      {
+        id: "old1",
+        at: "2026-06-01T00:00:01.000Z",
+        v: 1,
+        kind: "item-added",
+        item: {
+          id: "legacy",
+          name: "legacy",
+          category: "c",
+          cadence: { kind: "daily" },
+          // shape from before `steps` existed
+          bvSource: { slug: "s", nodeId: "n" } as unknown as BvSource,
+        },
+      },
+    ];
+    const s = reduce(events);
+    expect(s.items["legacy"]).toBeDefined();
+    expect(s.items["legacy"]?.currentNodeId).toBeUndefined();
+  });
+
   it("a retraction undoes its target event", () => {
     const b = builder();
     b.addItem("run", "exercise");
@@ -154,6 +215,71 @@ describe("reduce", () => {
     expect(reduce(b.events).logEntries[0]!.tags).toEqual(["outdoors"]);
     b.correct("l1", { tags: [] });
     expect(reduce(b.events).logEntries[0]!.tags).toBeUndefined();
+  });
+
+  it("a check-in is a time-logged entry carrying a nodeId + link", () => {
+    const events: CycleEvent[] = [
+      {
+        id: "ci1",
+        at: "2026-06-01T00:00:01.000Z",
+        v: 1,
+        kind: "time-logged",
+        entryId: "e1",
+        category: "cardistry",
+        itemId: "cards",
+        nodeId: "s2",
+        link: "https://youtu.be/abc",
+        effectiveDate: "2026-07-17",
+      },
+    ];
+    expect(reduce(events).logEntries[0]).toMatchObject({
+      itemId: "cards",
+      nodeId: "s2",
+      link: "https://youtu.be/abc",
+    });
+  });
+
+  it("a link-only check-in logs no minutes (no rollup impact)", () => {
+    const events: CycleEvent[] = [
+      {
+        id: "ci1",
+        at: "2026-06-01T00:00:01.000Z",
+        v: 1,
+        kind: "time-logged",
+        entryId: "e1",
+        category: "cardistry",
+        nodeId: "s1",
+        link: "https://example.com",
+        effectiveDate: "2026-07-17",
+      },
+    ];
+    const entry = reduce(events).logEntries[0];
+    expect(entry?.minutes).toBeUndefined();
+    expect(minutesByCategory(reduce(events).logEntries, "day", new Date("2026-07-17T12:00:00"))["cardistry"] ?? 0).toBe(0);
+  });
+
+  it("log-corrected can reassign a check-in's step (nodeId)", () => {
+    const events: CycleEvent[] = [
+      {
+        id: "ci1",
+        at: "2026-06-01T00:00:01.000Z",
+        v: 1,
+        kind: "time-logged",
+        entryId: "e1",
+        category: "cardistry",
+        nodeId: "s1",
+        effectiveDate: "2026-07-17",
+      },
+      {
+        id: "cor1",
+        at: "2026-06-01T00:00:02.000Z",
+        v: 1,
+        kind: "log-corrected",
+        targetEntryId: "e1",
+        patch: { nodeId: "s3" },
+      },
+    ];
+    expect(reduce(events).logEntries[0]?.nodeId).toBe("s3");
   });
 
   it("impressions are deduped per item per day", () => {
