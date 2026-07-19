@@ -1,7 +1,20 @@
 # ADR-0002: npm-ecosystem supply-chain discipline
-- Status: Accepted
+- Status: Superseded by [ADR-0006](0006-block-install-time-scripts.md),
+  [0007](0007-pin-exact-versions-restrict-registry.md),
+  [0008](0008-age-gate-dependency-admission.md), [0009](0009-ci-vulnerability-scanning.md),
+  [0010](0010-sbom-via-syft.md), [0011](0011-license-allowlist.md),
+  [0012](0012-protect-tooling-installed-beside-the-repo.md), and
+  [0013](0013-pin-actions-to-commit-shas.md)
 - Date: 2026-07-08 (amended 2026-07-18 — decision 10, the scope boundary of `ignore-scripts`)
 - Deciders: Ryan
+
+> **Split on 2026-07-18.** This file bundled ten decisions, which made none of them
+> individually supersedable — so when the stance moved, the only available move was editing it
+> in place, and that amendment (decision 10, and the header line above) is the violation of
+> our own immutability convention that prompted the split. The body below is left exactly as
+> it was committed, including the amendment, because rewriting it would compound the error.
+> Every decision here is carried forward, one per file, in ADR-0006 through 0013. Only
+> **0013 changes anything** — it reverses decision 8's tag-pinning in favour of commit SHAs.
 
 ## Context
 Ryan asked directly, while scaffolding this repo: are we guarded against supply-chain
