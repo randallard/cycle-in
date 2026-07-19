@@ -263,6 +263,19 @@ Found by re-walking the described flow against the docs and the then-current
 
 ## Open questions (deliberately unresolved)
 
+- **No behavioural risk-heuristic tool wired in** (was ADR-0002 decision 9; recorded here rather
+  than as an ADR, because "we haven't done this yet" is a gap, not a decision). Socket.dev or
+  equivalent analyses what a *new* package version does — new network calls, filesystem access,
+  obfuscation, maintainer changes — and is the only remaining thing that could flag an
+  in-progress compromise on publication day, which advisory databases structurally cannot.
+  Free for open-source projects. Deliberately deprioritised on 2026-07-18 after
+  [ADR-0008](adr/0008-age-gate-dependency-admission.md)'s 14-day install-time quarantine
+  closed most of the same window at zero added surface — a third-party GitHub app with repo
+  read access is itself supply-chain surface. **Revisit if** the age-gate ever has to be
+  shortened, or if a dependency lands that can't wait 14 days.
+- **git-redundancy still tag-pins its Actions**, so the fleet is inconsistent with
+  [ADR-0013](adr/0013-pin-actions-to-commit-shas.md). That project should adopt SHA pinning too.
+
 - **Import/step model sub-questions** (from ADR-0004) — _resolved during Phase 1:_ `showId` is a
   slug of the show title (`slugify`); a check-in reuses `time-logged` + `nodeId` (no dedicated
   `check-in` event). _Still open:_ multi-video shows (per-node `videoId` vs one `masterVideoId`

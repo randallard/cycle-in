@@ -7,3 +7,24 @@ allowBuilds:
   # reviewed 2026-07-08, not silently skipped.
   libxmljs2: false
 onlyBuiltDependencies: []
+
+# --- Install-time supply-chain gates (ADR-0002 decision 11, added 2026-07-18) ---
+# pnpm's own recommended baseline (https://pnpm.io/supply-chain-security). These
+# apply to *every* install, unlike renovate.json's `minimumReleaseAge`, which only
+# paces Renovate's own PRs and does nothing for a manual `pnpm add`.
+
+# 14 days, in minutes — deliberately matched to renovate.json's `minimumReleaseAge`
+# so both paths quarantine a new release for the same window. pnpm 11 would
+# otherwise default to 1440 (1 day). Most npm compromises are caught within hours
+# to days, so the wait is where the real protection is.
+minimumReleaseAge: 20160
+
+# Fail the install if a package's trust evidence has *decreased* versus its
+# previous releases (e.g. provenance attestations disappearing) — the closest
+# native signal to "this specific version looks wrong right now," which the
+# advisory-database scanners can't give us until something is disclosed.
+trustPolicy: no-downgrade
+
+# Transitive dependencies must resolve from the registry — no git URLs, no
+# arbitrary tarball links smuggled in by a sub-dependency.
+blockExoticSubdeps: true
