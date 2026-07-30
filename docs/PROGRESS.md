@@ -61,6 +61,31 @@ remotes only) and was restored as `origin`. 31 tests passing. New scope recorded
   public playlists vs OAuth for private ones, per-fork key config — is an open question
   below.)
 
+### 🔗 Possible fourth item source: compiled skill-resource documents (noted 2026-07-30)
+
+Item sources today are the branching-video bundle, custom reminder lists, and YouTube
+playlists. A fourth shape surfaced from a **different effort** and is worth knowing about
+before the item-source interface hardens: a **compiled markdown document** — online resources
+for a skill, gathered, summarized, and indexed — where the document's indexed sections map
+onto practice items more or less directly.
+
+The motivating example was *"exercises for building bow strength for playing the cello,"*
+which is not a coincidence: **cello is this project's own example of a newly cycled-in
+skill**, piano its example of one being kept from atrophying. So the example query and this
+app's core use case are the same thing.
+
+This is TCSearch's "documentation-building search" idea, tracked in
+[`~/Development/work/kiss-ai/PROGRESS.md`](../../work/kiss-ai/PROGRESS.md) (Track 2) with
+the narrative in [`kiss-ai/journal/2026-07-30.md`](../../work/kiss-ai/journal/2026-07-30.md).
+**One of Ryan's projects would emit what this one ingests** — worth not designing either half
+in isolation.
+
+**Nothing is committed to here.** No scope change, no dependency on kiss-ai, which is early
+and blocked on its own migration step. The actionable part is narrow: when the item-source
+interface gets designed, **don't assume every source is a feed of discrete items** — a source
+may be one document that has to be *decomposed* into items. Designing for that case costs
+little now and is awkward to retrofit.
+
 **2026-07-10 (later): the export/import event bundle is built** — `src/core/bundle.ts`
 (serialize deterministic and diff-clean, envelope-validated parse that imports
 newer-version events losslessly, union by event id) plus Export/Import buttons on the demo
