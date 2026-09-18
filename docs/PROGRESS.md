@@ -37,6 +37,22 @@ containerized `osv-scanner` both exit 0 against the current lockfile. Full narra
 ⚠️ **Renovate installation is now more overdue, not less** — this whole episode is exactly what
 it exists to prevent.
 
+**2026-09-18 (correction, same evening): that "verified locally" claim above was only half
+right.** Pushing the fix still failed CI — `ts supply chain` passed, but `OSV scan` didn't. The
+local check I'd run (`osv-scanner -r ./`, no flags) doesn't reproduce the actual gate: the
+reusable workflow runs a separate `osv-reporter` binary with `--fail-on-vuln=true`, which fails
+on **any** severity, not just High — 8 Medium findings I'd left alone as "doesn't block the
+deploy" were exactly what was blocking it. Fixed for real this time: bumped `postcss` again
+(8.5.18 → 8.5.23, a newer advisory than the one already fixed) and added an `undici` override;
+`nanoid` turned out to need nothing, resolving clean as a side effect of the postcss bump
+(confirmed via `pnpm why`, not assumed) — the two nanoid ignore entries came back out of both
+files since `osv-scanner` itself flagged them unused. Three more findings (two older ip-address
+Mediums, one vitest/`@vitest/mocker`) joined the dated ignore list, all clearing by 2026-09-29.
+This time verified against the actual failing command shape, not a same-named approximation —
+plain `osv-scanner -r ./` now reports "No issues found" with zero unused-ignore warnings. Full
+narrative:
+[`journal/2026-09-18-4-osv-scan-fails-on-any-severity-not-just-high.md`](journal/2026-09-18-4-osv-scan-fails-on-any-severity-not-just-high.md).
+
 **2026-09-18: migrated onto `cr-ci-cd-rust-typescript-template`'s conventions.** Docs/CI only —
 no application code touched, Phase 2 unaffected. cycle-in predates the template (started
 2026-07-08, template's earliest commit 2026-07-18) and had independently converged on most of

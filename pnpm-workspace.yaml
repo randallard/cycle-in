@@ -30,29 +30,38 @@ trustPolicy: no-downgrade
 blockExoticSubdeps: true
 
 # --- Transitive vulnerability fixes (2026-09-18) ---
-# `pnpm audit --audit-level=high` and osv-scan gate CI (ADR-0009). Neither
-# package below is a direct dependency; both are pulled in transitively by an
-# exact-pinned direct dep (vite -> postcss, license-checker-rseidelsohn ->
-# ... -> tar), so the fix is an override, not a package.json version bump.
-# Both patched versions clear the 14-day age-gate above (ADR-0008) as of this
-# date — postcss@8.5.18 published 2026-09-03, tar@7.5.21 published 2026-07-24.
+# `pnpm audit --audit-level=high` and osv-scan (which, via the reusable
+# workflow's `fail-on-vuln: true`, fails on *any* severity, not just high —
+# checked against the actual CI run, not assumed) gate CI (ADR-0009). None of
+# the packages below are direct dependencies; all are pulled in transitively
+# by an exact-pinned direct dep (vite -> postcss, license-checker-rseidelsohn
+# -> ... -> tar/undici), so the fix is an override, not a package.json bump.
+# All four patched versions clear the 14-day age-gate above (ADR-0008) as of
+# this date.
 overrides:
-  postcss: "8.5.18" # GHSA-r28c-9q8g-f849 (path traversal via sourceMappingURL)
-  tar: "7.5.21" # GHSA-r292-9mhp-454m (uncontrolled recursion DoS)
+  postcss: "8.5.23" # GHSA-r28c-9q8g-f849 (path traversal) + GHSA-fxqj-rqcc-2cmp, published 2026-09-03
+  tar: "7.5.21" # GHSA-r292-9mhp-454m (uncontrolled recursion DoS), published 2026-07-24
+  undici: "6.28.0" # GHSA-8xcm-r25x-g524 / GHSA-m8rv-5g2x-5cg5 / GHSA-v3r7-h72x-cjcm, published 2026-09-04
+  # nanoid needed no override of its own: postcss@8.5.23's own dependency
+  # range already resolves it to 3.3.18, clearing GHSA-28wg-ghj8-5hjv and
+  # GHSA-2v37-7h3g-55p8 as a side effect — confirmed via `pnpm why nanoid`,
+  # not assumed. No ignore entry needed for either.
 
 # Advisories found 2026-09-18 whose only patched version is younger than the
 # 14-day age-gate above — genuinely no *usable* patched version exists yet,
 # not a severity opinion or a lazy "waiting" excuse (see
 # .claude/skills/project-conventions/SKILL.md, Supply chain). All are
 # transitive dev-tooling deps (eslint's minimatch, license-checker's socks
-# chain, vite's postcss) with no attacker-controlled input in this project's
-# own CI, so quarantining rather than bypassing the gate is the right call
-# per ADR-0008. Mirrored in osv-scanner.toml — the two files must be kept in
-# sync, dropped together once each version clears 14 days.
+# chain, vite's postcss, vitest's own mocker) with no attacker-controlled
+# input in this project's own CI, so quarantining rather than bypassing the
+# gate is the right call per ADR-0008. Mirrored in osv-scanner.toml — the two
+# files must be kept in sync, dropped together once each version clears 14
+# days.
 auditConfig:
   ignoreGhsas:
     - GHSA-mh99-v99m-4gvg # brace-expansion DoS; fix 5.0.9 published 2026-09-14, clears 2026-09-28
     - GHSA-rgw5-rvv9-x895 # brace-expansion DoS (mitigation bypass); same fix/date as above
     - GHSA-mwp4-54f8-5fhr # ip-address SSRF; fix 10.3.1 published 2026-09-15, clears 2026-09-29
-    - GHSA-28wg-ghj8-5hjv # nanoid infinite loop (negative size); fix 3.3.18 published 2026-09-10, clears 2026-09-24
-    - GHSA-2v37-7h3g-55p8 # nanoid infinite loop (size zero); same fix/date as above
+    - GHSA-22jq-vg5j-6vgg # ip-address (older, medium); fix 10.2.1 published 2026-09-15, clears 2026-09-29
+    - GHSA-4xrf-jv44-h6hh # ip-address (older, medium); fix 10.2.2 published 2026-09-15, clears 2026-09-29
+    - GHSA-82fw-gwwq-j7x9 # vitest/@vitest/mocker; fix 4.1.11 published 2026-09-15, clears 2026-09-29

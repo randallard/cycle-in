@@ -8,6 +8,10 @@
 # (ADR-0008) as of 2026-09-18 — genuinely no *usable* patched version exists
 # yet, not a severity opinion. `ignoreUntil` matches the date each clears 14
 # days, so the ignore expires itself instead of needing a reminder.
+#
+# Note this scanner's `fail-on-vuln` (set true by the reusable workflow) fails
+# on *any* severity, unlike `pnpm audit --audit-level=high` — checked against
+# a real CI run, not assumed, after the first pass here only covered High.
 
 [[IgnoredVulns]]
 id = "GHSA-mh99-v99m-4gvg"
@@ -25,11 +29,16 @@ ignoreUntil = 2026-09-29
 reason = "ip-address SSRF; fix 10.3.1 published 2026-09-15, quarantined per ADR-0008 until 14 days old"
 
 [[IgnoredVulns]]
-id = "GHSA-28wg-ghj8-5hjv"
-ignoreUntil = 2026-09-24
-reason = "nanoid infinite loop (negative size); fix 3.3.18 published 2026-09-10, quarantined per ADR-0008 until 14 days old"
+id = "GHSA-22jq-vg5j-6vgg"
+ignoreUntil = 2026-09-29
+reason = "ip-address (older, medium); fix 10.2.1 published 2026-09-15, quarantined per ADR-0008 until 14 days old"
 
 [[IgnoredVulns]]
-id = "GHSA-2v37-7h3g-55p8"
-ignoreUntil = 2026-09-24
-reason = "nanoid infinite loop (size zero); same fix/date as GHSA-28wg-ghj8-5hjv"
+id = "GHSA-4xrf-jv44-h6hh"
+ignoreUntil = 2026-09-29
+reason = "ip-address (older, medium); fix 10.2.2 published 2026-09-15, quarantined per ADR-0008 until 14 days old"
+
+[[IgnoredVulns]]
+id = "GHSA-82fw-gwwq-j7x9"
+ignoreUntil = 2026-09-29
+reason = "vitest/@vitest/mocker; fix 4.1.11 published 2026-09-15, quarantined per ADR-0008 until 14 days old"
