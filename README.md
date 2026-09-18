@@ -46,7 +46,8 @@ notably): [`docs/PROGRESS.md`](docs/PROGRESS.md).
 
 ## Fork it
 
-cycle-in is [MIT-licensed](LICENSE) and meant to be forked: the goal is that anyone can fork
+cycle-in is dual-licensed [MIT](LICENSE-MIT) OR [Apache-2.0](LICENSE-APACHE) (ADR-0014) — pick
+whichever you prefer — and meant to be forked: the goal is that anyone can fork
 this repo, adjust the config to their preferences, and start using it on their own GitHub
 Pages — [`docs/SETUP.md`](docs/SETUP.md) walks through that end to end. User-tunable preferences live in one place — `src/core/config.ts` (`CycleConfig`):
 the choices-list size (`maxOptions`, default 10) and the first day of the week
@@ -80,3 +81,5 @@ allowed. See [`docs/adr/0002-npm-supply-chain-discipline.md`](docs/adr/0002-npm-
 - [`docs/PROGRESS.md`](docs/PROGRESS.md) — current status, immediate next steps, open questions.
 - [`docs/adr/`](docs/adr/README.md) — Architecture Decision Records (the *why*).
 - [`docs/journal/`](docs/journal/README.md) — dated narrative worklog.
+- [`docs/reviews/`](docs/reviews/README.md) — monthly stance-review records.
+- [`CLAUDE.md`](CLAUDE.md) / [`.claude/skills/project-conventions/`](.claude/skills/project-conventions/SKILL.md) — house conventions for anyone (human or Claude) working in this repo.

@@ -15,7 +15,32 @@ dropped their video provenance, the board's verb row collapsed on every advance,
 `javascript:` link still rendered as a clickable anchor, and most verbs left the *previous*
 status message standing. 113 tests; `pnpm build` + lint clean. Still uncommitted pending Ryan's
 own look. **Next up: Phase 2** — the `interval` cadence ("every 50 min"), snooze, and the
-live-refreshing list (ADR-0005). The paragraphs below are the accreted history, oldest first.
+live-refreshing list (ADR-0005). Doesn't change with the 2026-09-18 migration below. The
+paragraphs below are the accreted history, oldest first.
+
+**2026-09-18: migrated onto `cr-ci-cd-rust-typescript-template`'s conventions.** Docs/CI only —
+no application code touched, Phase 2 unaffected. cycle-in predates the template (started
+2026-07-08, template's earliest commit 2026-07-18) and had independently converged on most of
+the same shape, so this was additive: `scripts/docs-hygiene.py` +
+`.github/workflows/docs-hygiene.yml` (mechanical ADR/journal/link checks, now gating CI — found
+and fixed 5 pre-existing broken/escaping links in the process, all in cross-links to
+`work/kiss-ai`, which has no public remote to link to so those became inline-code paths
+instead); `.github/workflows/stance-review.yml` + `docs/reviews/` + the `stance-review` skill
+(the monthly habit didn't exist here before); `.github/CODEOWNERS`; `CLAUDE.md` +
+`.claude/skills/project-conventions/SKILL.md`, adapted from the template to point at
+[ADR-0001](adr/0001-provable-lite-strict-ts-and-property-tests-no-rust-core.md)'s provable-lite
+tier instead of the template's Rust-first defaults. **License switched MIT-only → dual MIT OR
+Apache-2.0** ([ADR-0014](adr/0014-dual-license-mit-or-apache-2-0.md)) — checked directly that
+this doesn't cost the fork-friendliness the original MIT pick was for, since "OR" lets a forker
+comply with either. **CI restructured** from one `deploy.yml` job into the template's
+`detect`/`ts-gates`/`ts-supply-chain`/`sbom`/`osv-scan`/`deploy` split (functionally what the
+old workflow already did, just organized to match the template and ready for a Rust job to
+attach without edits if one's ever added). ⚠️ **Not yet done: the `DEPLOY_PAGES` repo variable.**
+The template's `deploy` job is opt-in behind `vars.DEPLOY_PAGES == 'true'`; the old `deploy.yml`
+deployed unconditionally. Confirmed via `gh variable list` that it isn't set — **the live site
+stops deploying on the next push to `main` until `gh variable set DEPLOY_PAGES --body true -R
+randallard/cycle-in` is run.** Deliberately left for Ryan rather than set silently, since it's a
+live GitHub setting change, not a file. `python3 scripts/docs-hygiene.py` runs clean locally.
 
 **Status (2026-07-08, scaffolding era — superseded by the entries below):** Repo scaffolded,
 pushed, and **confirmed live**: https://randallard.github.io/cycle-in/
@@ -75,8 +100,8 @@ skill**, piano its example of one being kept from atrophying. So the example que
 app's core use case are the same thing.
 
 This is TCSearch's "documentation-building search" idea, tracked in
-[`~/Development/work/kiss-ai/PROGRESS.md`](../../work/kiss-ai/PROGRESS.md) (Track 2) with
-the narrative in [`kiss-ai/journal/2026-07-30.md`](../../work/kiss-ai/journal/2026-07-30.md).
+`~/Development/work/kiss-ai/PROGRESS.md` (Track 2) with
+the narrative in `kiss-ai/journal/2026-07-30.md`.
 **One of Ryan's projects would emit what this one ingests** — worth not designing either half
 in isolation.
 
@@ -85,6 +110,16 @@ and blocked on its own migration step. The actionable part is narrow: when the i
 interface gets designed, **don't assume every source is a feed of discrete items** — a source
 may be one document that has to be *decomposed* into items. Designing for that case costs
 little now and is awkward to retrofit.
+
+**2026-09-18: a second worked example, and a gap named around it.** A second
+documentation-building-search case (ACL injury prevention) surfaced the same way the cello one
+did, and Ryan named a bigger flow it sits inside: notice something → research it (TCSearch) →
+decide whether to build it into daily life → set a long-term plan → **weigh it against
+everything else already claiming time, deliberately.** That last step isn't in this app today
+— category rollups answer "how did time actually split" after the fact; nothing answers "what
+would adding this cost, against what it's meant to serve" at the moment of deciding to cycle
+something new in. Not designed, not scoped. Full note:
+[`journal/2026-09-18-1-a-finite-time-flow-around-the-fourth-item-source.md`](journal/2026-09-18-1-a-finite-time-flow-around-the-fourth-item-source.md).
 
 **2026-07-10 (later): the export/import event bundle is built** — `src/core/bundle.ts`
 (serialize deterministic and diff-clean, envelope-validated parse that imports
@@ -288,6 +323,12 @@ Found by re-walking the described flow against the docs and the then-current
 
 ## Open questions (deliberately unresolved)
 
+- **Trade-off legibility when cycling something new in** (new 2026-09-18, see the journal entry
+  above) — adding a time-option today just adds it; nothing surfaces what it would cost against
+  existing categories/goals, or what it might already serve, at the moment of deciding. Whether
+  this becomes UI (a cost preview on add-item), a config-level goal model, or stays a manual
+  judgment call is unresolved — revisit when the add-item flow or item-source interface next
+  gets real design attention.
 - **No behavioural risk-heuristic tool wired in** (was ADR-0002 decision 9; recorded here rather
   than as an ADR, because "we haven't done this yet" is a gap, not a decision). Socket.dev or
   equivalent analyses what a *new* package version does — new network calls, filesystem access,
