@@ -84,3 +84,4 @@ That's the valuable part, and it's exactly what an in-place edit destroys.
 | [0011](0011-license-allowlist.md) | License allowlist for transitive dependencies | Accepted |
 | [0012](0012-protect-tooling-installed-beside-the-repo.md) | Tooling installed beside the repo passes `--ignore-scripts` explicitly | Accepted |
 | [0013](0013-pin-actions-to-commit-shas.md) | Pin third-party GitHub Actions to full commit SHAs | Accepted |
+| [0014](0014-dual-license-mit-or-apache-2-0.md) | Dual-license MIT OR Apache-2.0, replacing MIT-only | Accepted |
