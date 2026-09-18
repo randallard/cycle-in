@@ -2,7 +2,7 @@
 
 Docs-only note. No code, no scope commitment.
 
-Came in sideways from [kiss-ai](../../../work/kiss-ai/), which is unrelated work: Ryan
+Came in sideways from `kiss-ai` (`~/Development/work/kiss-ai/`), which is unrelated work: Ryan
 wanted **exercises for building bow strength on the cello** and asked for online resources
 *compiled into a markdown document, summarized and indexed* — not a list of links. That's
 TCSearch's "documentation-building search" idea.
