@@ -1,0 +1,35 @@
+# Mirrors pnpm-workspace.yaml's `auditConfig.ignoreGhsas` — the two scanners read
+# separate config and separate databases (project-conventions/SKILL.md, Supply
+# chain), so an ignore has to be written once per scanner. Keep these two files'
+# ignore lists identical and drop entries from both together.
+#
+# Every entry here is a transitive dev-tooling dependency whose only patched
+# version is younger than the 14-day age-gate in pnpm-workspace.yaml
+# (ADR-0008) as of 2026-09-18 — genuinely no *usable* patched version exists
+# yet, not a severity opinion. `ignoreUntil` matches the date each clears 14
+# days, so the ignore expires itself instead of needing a reminder.
+
+[[IgnoredVulns]]
+id = "GHSA-mh99-v99m-4gvg"
+ignoreUntil = 2026-09-28
+reason = "brace-expansion DoS; fix 5.0.9 published 2026-09-14, quarantined per ADR-0008 until 14 days old"
+
+[[IgnoredVulns]]
+id = "GHSA-rgw5-rvv9-x895"
+ignoreUntil = 2026-09-28
+reason = "brace-expansion DoS (mitigation bypass); same fix/date as GHSA-mh99-v99m-4gvg"
+
+[[IgnoredVulns]]
+id = "GHSA-mwp4-54f8-5fhr"
+ignoreUntil = 2026-09-29
+reason = "ip-address SSRF; fix 10.3.1 published 2026-09-15, quarantined per ADR-0008 until 14 days old"
+
+[[IgnoredVulns]]
+id = "GHSA-28wg-ghj8-5hjv"
+ignoreUntil = 2026-09-24
+reason = "nanoid infinite loop (negative size); fix 3.3.18 published 2026-09-10, quarantined per ADR-0008 until 14 days old"
+
+[[IgnoredVulns]]
+id = "GHSA-2v37-7h3g-55p8"
+ignoreUntil = 2026-09-24
+reason = "nanoid infinite loop (size zero); same fix/date as GHSA-28wg-ghj8-5hjv"

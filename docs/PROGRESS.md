@@ -18,6 +18,25 @@ own look. **Next up: Phase 2** — the `interval` cadence ("every 50 min"), snoo
 live-refreshing list (ADR-0005). Doesn't change with the 2026-09-18 migration below. The
 paragraphs below are the accreted history, oldest first.
 
+**2026-09-18 (later): first real CI run in two months caught 7 live advisories.** The
+migration's new `ci.yml` was the first push-triggered CI run since 2026-07-19 — and in the
+intervening two months, 7 high-severity advisories landed against transitive dev-tooling deps
+(brace-expansion, ip-address, nanoid, postcss, tar) whose pinned versions never moved, because
+Renovate is still not installed (worklist #2, unchanged). Nothing wrong with the migration
+itself; it just turned CI back on and the drift was sitting there waiting. **postcss and tar**
+had patched versions old enough to clear ADR-0008's 14-day age-gate, so those got a
+`pnpm-workspace.yaml` `overrides` entry (both are transitive, not direct deps, so a plain
+`pnpm update` doesn't reach them). **brace-expansion, ip-address, and nanoid's patches are all
+younger than 14 days** — genuinely no usable patched version exists yet under this project's
+own quarantine policy — so those 5 GHSAs are quarantined in both `pnpm-workspace.yaml`
+(`auditConfig.ignoreGhsas`) and the new `osv-scanner.toml` (`ignoreUntil` dates: 2026-09-24 for
+the nanoid pair, 2026-09-28/29 for the others), self-expiring rather than needing a manual
+follow-up. Verified locally, not just assumed: `pnpm audit --audit-level=high` and the
+containerized `osv-scanner` both exit 0 against the current lockfile. Full narrative:
+[`journal/2026-09-18-3-first-ci-run-in-two-months-finds-real-drift.md`](journal/2026-09-18-3-first-ci-run-in-two-months-finds-real-drift.md).
+⚠️ **Renovate installation is now more overdue, not less** — this whole episode is exactly what
+it exists to prevent.
+
 **2026-09-18: migrated onto `cr-ci-cd-rust-typescript-template`'s conventions.** Docs/CI only —
 no application code touched, Phase 2 unaffected. cycle-in predates the template (started
 2026-07-08, template's earliest commit 2026-07-18) and had independently converged on most of
