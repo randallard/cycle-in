@@ -1,8 +1,10 @@
 # Progress & Status
 
-_Last updated: 2026-07-18_
+_Last updated: 2026-10-14_
 
 ## Status / next
+
+**2026-10-14 — age gate 1 day (ADR-0015) and 20 advisories cleared, in a PR.** Overrides + `vitest` 4.1.11; the expired dated ignores and `osv-scanner.toml` removed. Still owed: `DEPLOY_PAGES` repo variable, Renovate install. See [journal](journal/2026-10-14-age-gate-one-day-and-twenty-advisories.md).
 
 **Now (2026-07-18) — a working app, not a stub, and now driven end to end in a browser.** The
 board (direction B "balance board"), the `#history` view, the IndexedDB event store, and

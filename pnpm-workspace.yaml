@@ -13,11 +13,10 @@ onlyBuiltDependencies: []
 # apply to *every* install, unlike renovate.json's `minimumReleaseAge`, which only
 # paces Renovate's own PRs and does nothing for a manual `pnpm add`.
 
-# 14 days, in minutes — deliberately matched to renovate.json's `minimumReleaseAge`
-# so both paths quarantine a new release for the same window. pnpm 11 would
-# otherwise default to 1440 (1 day). Most npm compromises are caught within hours
-# to days, so the wait is where the real protection is.
-minimumReleaseAge: 20160
+# 1 day, in minutes (ADR-0015, superseding ADR-0008's 14): pnpm's own recommendation and
+# v11 default, deliberately matched to renovate.json's `minimumReleaseAge` so both paths
+# quarantine a new release for the same window.
+minimumReleaseAge: 1440
 
 # Fail the install if a package's trust evidence has *decreased* versus its
 # previous releases (e.g. provenance attestations disappearing) — the closest
@@ -36,32 +35,17 @@ blockExoticSubdeps: true
 # the packages below are direct dependencies; all are pulled in transitively
 # by an exact-pinned direct dep (vite -> postcss, license-checker-rseidelsohn
 # -> ... -> tar/undici), so the fix is an override, not a package.json bump.
-# All four patched versions clear the 14-day age-gate above (ADR-0008) as of
-# this date.
+# Overrides on a bare name or `name@major` so none can jump a major version.
 overrides:
   postcss: "8.5.23" # GHSA-r28c-9q8g-f849 (path traversal) + GHSA-fxqj-rqcc-2cmp, published 2026-09-03
   tar: "7.5.21" # GHSA-r292-9mhp-454m (uncontrolled recursion DoS), published 2026-07-24
-  undici: "6.28.0" # GHSA-8xcm-r25x-g524 / GHSA-m8rv-5g2x-5cg5 / GHSA-v3r7-h72x-cjcm, published 2026-09-04
+  undici: "6.28.1" # GHSA-8xcm-r25x-g524 / GHSA-m8rv-5g2x-5cg5 / GHSA-v3r7-h72x-cjcm, then GHSA-rfgv-xxqx-mfg5 / GHSA-3wwx-pv8p-q78v / GHSA-r53p-7pc4-xj5r
+  "brace-expansion@5": "^5.0.12" # GHSA-mh99-v99m-4gvg, GHSA-rgw5-rvv9-x895, GHSA-6j4f-fj2g-mc7p, GHSA-qhr7-859c-m2p7, GHSA-q2hr-2g5m-vwhr
+  "ip-address": "^10.7.1" # GHSA-mwp4-54f8-5fhr, GHSA-22jq-vg5j-6vgg, GHSA-4xrf-jv44-h6hh, GHSA-2vr4-cq9g-pvrc, GHSA-rpw4-54j3-4h4q, GHSA-h3mg-xc3c-68pw, GHSA-j6r3-76f7-8jcv
+  "http-cache-semantics": "^4.2.1" # GHSA-ch52-4w7c-c8xp
+  "source-map-js": "^1.2.2" # GHSA-68fv-2mgg-jv7q
+  "postcss-selector-parser@7": "^7.1.6" # GHSA-rj75-hqrm-r3gf
   # nanoid needed no override of its own: postcss@8.5.23's own dependency
   # range already resolves it to 3.3.18, clearing GHSA-28wg-ghj8-5hjv and
   # GHSA-2v37-7h3g-55p8 as a side effect — confirmed via `pnpm why nanoid`,
   # not assumed. No ignore entry needed for either.
-
-# Advisories found 2026-09-18 whose only patched version is younger than the
-# 14-day age-gate above — genuinely no *usable* patched version exists yet,
-# not a severity opinion or a lazy "waiting" excuse (see
-# .claude/skills/project-conventions/SKILL.md, Supply chain). All are
-# transitive dev-tooling deps (eslint's minimatch, license-checker's socks
-# chain, vite's postcss, vitest's own mocker) with no attacker-controlled
-# input in this project's own CI, so quarantining rather than bypassing the
-# gate is the right call per ADR-0008. Mirrored in osv-scanner.toml — the two
-# files must be kept in sync, dropped together once each version clears 14
-# days.
-auditConfig:
-  ignoreGhsas:
-    - GHSA-mh99-v99m-4gvg # brace-expansion DoS; fix 5.0.9 published 2026-09-14, clears 2026-09-28
-    - GHSA-rgw5-rvv9-x895 # brace-expansion DoS (mitigation bypass); same fix/date as above
-    - GHSA-mwp4-54f8-5fhr # ip-address SSRF; fix 10.3.1 published 2026-09-15, clears 2026-09-29
-    - GHSA-22jq-vg5j-6vgg # ip-address (older, medium); fix 10.2.1 published 2026-09-15, clears 2026-09-29
-    - GHSA-4xrf-jv44-h6hh # ip-address (older, medium); fix 10.2.2 published 2026-09-15, clears 2026-09-29
-    - GHSA-82fw-gwwq-j7x9 # vitest/@vitest/mocker; fix 4.1.11 published 2026-09-15, clears 2026-09-29

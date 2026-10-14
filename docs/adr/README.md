@@ -78,10 +78,11 @@ That's the valuable part, and it's exactly what an in-place edit destroys.
 | [0005](0005-interval-cadence-foreground-reminders-snooze.md) | Interval/session cadence, foreground reminders, and snooze (amends ADR-0003) | Proposed |
 | [0006](0006-block-install-time-scripts.md) | Block install-time script execution | Accepted |
 | [0007](0007-pin-exact-versions-restrict-registry.md) | Pin exact versions and restrict the registry | Accepted |
-| [0008](0008-age-gate-dependency-admission.md) | Age-gate dependency admission at the package manager, not just the update bot | Accepted |
+| [0008](0008-age-gate-dependency-admission.md) | Age-gate dependency admission at the package manager, not just the update bot | Superseded by 0015 |
 | [0009](0009-ci-vulnerability-scanning.md) | CI vulnerability scanning — two advisory sources plus signature verification | Accepted |
 | [0010](0010-sbom-via-syft.md) | SBOM via Syft (an Action), not an npm package | Accepted |
 | [0011](0011-license-allowlist.md) | License allowlist for transitive dependencies | Accepted |
 | [0012](0012-protect-tooling-installed-beside-the-repo.md) | Tooling installed beside the repo passes `--ignore-scripts` explicitly | Accepted |
 | [0013](0013-pin-actions-to-commit-shas.md) | Pin third-party GitHub Actions to full commit SHAs | Accepted |
 | [0014](0014-dual-license-mit-or-apache-2-0.md) | Dual-license MIT OR Apache-2.0, replacing MIT-only | Accepted |
+| [0015](0015-one-day-age-gate.md) | The age gate is one day, not fourteen | Accepted |
