@@ -22,8 +22,10 @@ Note the `/cycle-in/` base path — the bare origin 404s.
 
 ## Driving it
 
-No Playwright in the repo, but the browsers are already cached and
-`playwright-core` installs in seconds into the scratchpad.
+The repo has a Playwright suite since 2026-10-31 (ADR-0019): `pnpm e2e` builds, serves the
+built site on port 4318 and runs `e2e/*.e2e.ts` (axe today) in light and dark. For a one-off
+look at a change, add a test there or drive the page the way below; scratchpad tooling still
+needs the care this section describes.
 
 **Install it with `--ignore-scripts`, always:**
 

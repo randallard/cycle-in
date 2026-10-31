@@ -4,7 +4,9 @@ _Last updated: 2026-10-31_
 
 ## Status / next
 
-**Standards:** last compliance review 2026-10-31: sound core and supply-chain gates, but behind the template: 9 gaps, most urgently PR #2 emptying `renovate.json` ([note](compliance/2026-10-31.md)). Gaps 1–4 fixed the same day, in PR #2 and the CI PR stacked on it; 5–9 open
+**Standards:** last compliance review 2026-10-31 ([note](compliance/2026-10-31.md)): 9 gaps, all addressed the same day across PRs #2, #3 and the gaps-5–9 PR (ADRs 0016–0019, inherited 1000–1017, a first [stance review](reviews/2026-10-31-stance-review.md)).
+
+**2026-10-31 (later) — gaps 5–9 done** on `compliance-gaps-5-9`, stacked on #3: ADRs 0016/0017 record ADR-0004's amended block; Rust jobs deleted; template ADRs 1000–1017 and current skills inherited; first stance review; and Ryan's ADR-1012 answers, both yes: a CI-checked cast registry (ADR-0018; four unjustifiable casts became `isCadenceKind`/`isPeriod` guards) and axe in light and dark (ADR-0019; fixed `--ink-3` contrast in both themes). **Next:** merge #2 → #3 → the gaps PR; decide the stance review's two proposed ADRs (IndexedDB ahead of sync; pnpm 12); then `DEPLOY_PAGES`, Renovate, Phase 2. See [journal](journal/2026-10-31-2-compliance-gaps-5-to-9.md).
 
 **2026-10-31 — first compliance review; gaps 1–4 fixed in PRs.** #2 now restores the `renovate.json` its own commit had emptied, and clears 14 advisories published since 10-14 (vite, vitest, undici, and bounded cross-major overrides for glob/minimatch); green. Stacked on it: timeouts on every CI job, Node 24, and a gitleaks secret scan. **Next:** merge #2, then the CI PR; then review gaps 5–8 (ADR-0004's amended block, the ADR-1012 questions, the inherited ADRs and skill, a first stance review), then `DEPLOY_PAGES`, Renovate, Phase 2. See [journal](journal/2026-10-31-compliance-review-and-first-four-gaps.md).
 

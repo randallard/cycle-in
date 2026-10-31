@@ -169,6 +169,8 @@ describe("reduce", () => {
           category: "c",
           cadence: { kind: "daily" },
           // shape from before `steps` existed
+          // cast (any-registry): the shape from before `steps` existed, which the current type no
+          // longer allows; the test is that the reducer still tolerates it.
           bvSource: { slug: "s", nodeId: "n" } as unknown as BvSource,
         },
       },
@@ -294,6 +296,8 @@ describe("reduce", () => {
   it("unknown event kinds are counted, not fatal", () => {
     const b = builder();
     b.addItem("x", "c");
+    // cast (any-registry): an event kind from a newer app version, deliberately outside the
+    // CycleEvent union; the test is that it's counted, not fatal.
     const alien = {
       id: "zzz",
       at: "2026-07-08T12:00:00.000Z",
@@ -377,9 +381,8 @@ describe("cadence", () => {
           max: new Date(2100, 0, 1),
           noInvalidDate: true,
         }),
-        fc.integer({ min: 0, max: 6 }),
-        (d, s) => {
-          const start = s as Weekday;
+        fc.constantFrom<Weekday>(0, 1, 2, 3, 4, 5, 6),
+        (d, start) => {
           const startDay = fromDayKey(weekKey(d, start));
           expect(startDay.getDay()).toBe(start);
           const localMidnight = new Date(

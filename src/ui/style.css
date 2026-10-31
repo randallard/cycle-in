@@ -9,7 +9,7 @@
   --line: #2b333d;
   --ink: #e8ebee;
   --ink-2: #9aa4ae;
-  --ink-3: #6b7682;
+  --ink-3: #87929c; /* ≥4.5:1 on ground/panel/panel-2 (WCAG AA, ADR-0019); was #6b7682 at 3.09–3.85 */
   --overdue: #f09a56;
   --overdue-bg: #35271a;
   --track: #2b333d;
@@ -28,7 +28,7 @@
     --line: #dce0e5;
     --ink: #1b2129;
     --ink-2: #57616c;
-    --ink-3: #8b949e;
+    --ink-3: #656e79; /* ≥4.5:1 on ground/panel/panel-2 (WCAG AA, ADR-0019); was #8b949e at 2.69–3.08 */
     --overdue: #b45309;
     --overdue-bg: #f9ecdd;
     --track: #e2e6ea;

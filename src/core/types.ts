@@ -8,6 +8,15 @@ export interface Cadence {
   atTime?: { hour: number; minute: number };
 }
 
+/** Every cadence kind, in display order. */
+export const CADENCE_KINDS: readonly Cadence["kind"][] = ["daily", "weekly", "monthly", "one-off"];
+
+/** Narrows an untrusted string (a form value) to a cadence kind, instead of asserting it: a
+ * cadence is written to the append-only log, so a bad value would be there for good. */
+export function isCadenceKind(v: string): v is Cadence["kind"] {
+  return CADENCE_KINDS.some((k) => k === v);
+}
+
 /** A single step of a branching-video-sourced time-option (ADR-0004): a chosen
  * node with its video coordinates resolved (produced by `bvimport`'s
  * `stepsFromNodes`). */

@@ -4,6 +4,14 @@ import { dayKey, fromDayKey, monthKey, weekKey, yearKey } from "./time";
 
 export type Period = "day" | "week" | "month" | "year";
 
+/** Every period, in display order. */
+export const PERIODS: readonly Period[] = ["day", "week", "month", "year"];
+
+/** Narrows an untrusted string (a DOM attribute, say) to a `Period`, instead of asserting it. */
+export function isPeriod(v: string): v is Period {
+  return PERIODS.some((p) => p === v);
+}
+
 /** The bucket key of the period containing `d` — comparable for equality
  * only (keys of different periods have different shapes). */
 export function periodKey(

@@ -65,6 +65,8 @@ const eventsArb: fc.Arbitrary<CycleEvent[]> = fc
             effectiveDate: `2026-07-${pad(s.day)}`,
           };
         default:
+          // cast (any-registry): a deliberately unknown event kind, to test that the reducer
+          // tolerates it; it can't be typed as a CycleEvent, which is the point.
           return {
             ...base,
             kind: "from-a-newer-version",
@@ -97,6 +99,8 @@ describe("serializeBundle / parseBundle", () => {
   });
 
   it("carries the envelope fields", () => {
+    // cast (any-registry): JSON.parse returns any; the test only reads named keys and asserts
+    // their values, so a wrong shape fails the expect.
     const parsed = JSON.parse(serializeBundle([], EXPORTED_AT)) as Record<
       string,
       unknown

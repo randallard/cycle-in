@@ -10,6 +10,9 @@
     "isolatedModules": true,
     "moduleDetection": "force",
     "noEmit": true,
+    // No ambient @types: src/ is browser code and must not see Node globals. The one Node
+    // script (scripts/any-registry-check.ts) opts in with `/// <reference types="node" />`.
+    "types": [],
 
     "strict": true,
     "noUncheckedIndexedAccess": true,
@@ -19,6 +22,6 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true
   },
-  "include": ["src", "vitest.config.ts", "vite.config.ts"],
+  "include": ["src", "scripts/*.ts", "e2e", "playwright.config.ts", "vitest.config.ts", "vite.config.ts"],
   "exclude": ["node_modules", "dist"]
 }

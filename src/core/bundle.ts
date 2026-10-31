@@ -70,6 +70,8 @@ export function parseBundle(text: string): CycleEvent[] {
   if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
     throw new Error("not a bundle object");
   }
+  // cast (any-registry): the line above rules out non-objects, null and arrays, so `raw` is a
+  // plain object; only named keys are read, each type-checked before use.
   const b = raw as Record<string, unknown>;
   if (b["format"] !== BUNDLE_FORMAT) {
     throw new Error(`not a ${BUNDLE_FORMAT} bundle`);
@@ -88,6 +90,8 @@ export function parseBundle(text: string): CycleEvent[] {
     if (typeof e !== "object" || e === null) {
       throw new Error(`event ${String(i)} is not an object`);
     }
+    // cast (any-registry): guarded just above (an object, not null); each field is type-checked
+    // before it's trusted.
     const ev = e as Record<string, unknown>;
     if (typeof ev["id"] !== "string" || ev["id"] === "") {
       throw new Error(`event ${String(i)} has no id`);
@@ -103,5 +107,7 @@ export function parseBundle(text: string): CycleEvent[] {
     }
   });
   // Envelope validated above; payloads are the reducer's job to tolerate.
+  // cast (any-registry): the envelope of every event (id, at, kind, v) is validated above;
+  // payloads are not, by design, and the reducer tolerates unknown kinds and fields.
   return unionEvents(events as CycleEvent[]);
 }

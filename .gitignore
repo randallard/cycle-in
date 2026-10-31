@@ -2,3 +2,7 @@ node_modules/
 dist/
 *.log
 .claude/settings.local.json*
+
+# Playwright (ADR-0019)
+test-results/
+playwright-report/

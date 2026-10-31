@@ -7,6 +7,10 @@ allowBuilds:
   # reviewed 2026-07-08, not silently skipped.
   libxmljs2: false
 onlyBuiltDependencies: []
+# Fail the install when a dependency has a build script that isn't allowed above, rather than
+# skipping it quietly. pnpm's default, set explicitly per ADR-1016 (stance review 2026-10-31:
+# it's in pnpm's recommended baseline and was the one setting not stated here).
+strictDepBuilds: true
 
 # --- Install-time supply-chain gates (ADR-0002 decision 11, added 2026-07-18) ---
 # pnpm's own recommended baseline (https://pnpm.io/supply-chain-security). These

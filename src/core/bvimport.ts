@@ -62,6 +62,8 @@ function opt<K extends string, V>(
   key: K,
   value: V | undefined
 ): Partial<Record<K, V>> {
+  // cast (any-registry): a computed key widens to `{ [x: string]: V }`; `key` is a K, so the
+  // object has exactly the one K key, and the return type is Partial<Record<K, V>>.
   return value === undefined ? {} : ({ [key]: value } as Record<K, V>);
 }
 
@@ -69,6 +71,8 @@ function parseChoices(raw: readonly unknown[]): BvChoice[] {
   const out: BvChoice[] = [];
   for (const c of raw) {
     if (typeof c !== "object" || c === null) continue;
+    // cast (any-registry): guarded just above (an object, not null); every field read goes
+    // through asString or a === check.
     const cc = c as Record<string, unknown>;
     const target = asString(cc["target"]);
     if (target === undefined || target === "") continue; // unnavigable, skip
@@ -85,6 +89,8 @@ function parseNode(raw: unknown, i: number): BvNode {
   if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
     throw new Error(`node ${String(i)} is not an object`);
   }
+  // cast (any-registry): guarded just above (an object, not null, not an array); every field read
+  // goes through asString/asNumber or a === check.
   const n = raw as Record<string, unknown>;
   const id = asString(n["id"]);
   if (id === undefined || id === "") {
@@ -115,6 +121,8 @@ export function parseBvConfig(text: string): BvShow {
   if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
     throw new Error("not a branching-video config (expected a JSON object)");
   }
+  // cast (any-registry): guarded just above (an object, not null, not an array); fields are read
+  // through asString or === checks.
   const c = raw as Record<string, unknown>;
   if (c["format"] === "cycle-in-events") {
     throw new Error(
