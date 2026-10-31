@@ -171,11 +171,13 @@ jobs:
       contents: read
       security-events: write
       actions: read
+    # v2.7.0 at least (ADR-0021): pnpm 12 writes a two-document lockfile, and v2.3.8 reads only the
+    # first (pnpm's own 16 packages), so it passes while scanning none of ours. v2.7.0 reads both.
     # Reusable workflow — pinned by tag because `uses:` on a reusable workflow
     # resolves a ref in that repo the same way; bump deliberately.
     # No timeout-minutes here (ADR-1005's one exception): GitHub rejects it on a job that calls a
     # reusable workflow; the called workflow's own jobs carry their limits.
-    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@9a498708959aeaef5ef730655706c5a1df1edbc2 # v2.3.8
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@b1d267aea5211fa648d9d442fa64b90dbdcbdd36 # v2.7.0
 
   # Runs on every project, with or without a manifest: a secret can be committed to any repo.
   # Not a marketplace action: gitleaks-action needs a paid license on organisation accounts, and
