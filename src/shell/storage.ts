@@ -73,6 +73,8 @@ export function openIndexedDbStore(dbName = DB_NAME): Promise<EventStore> {
           const rows: unknown[] = await asPromise(store.getAll());
           // The only writer is `append`, which stores CycleEvents verbatim;
           // unknown kinds are the reducer's job to tolerate, not ours.
+          // cast (any-registry): the store's only writer is `append`, which stores CycleEvents
+          // verbatim; unknown kinds from newer versions are the reducer's job to tolerate.
           return rows as CycleEvent[];
         },
       });

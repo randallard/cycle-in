@@ -93,6 +93,8 @@ That's the valuable part, and it's exactly what an in-place edit destroys.
 | [0015](0015-one-day-age-gate.md) | The age gate is one day, not fourteen | Accepted |
 | [0016](0016-an-import-with-no-steps-keeps-its-video-provenance.md) | A branching-video import with no steps chosen still records where it came from | Accepted |
 | [0017](0017-check-in-links-are-web-addresses-at-capture-and-render.md) | Check-in links must be web addresses, checked at capture and at render | Accepted |
+| [0018](0018-every-cast-is-registered.md) | Every `any` and type assertion is registered, with its reason, and CI checks it | Accepted |
+| [0019](0019-accessibility-checks-with-axe.md) | Accessibility is checked with axe against every view, in light and dark, in CI | Accepted |
 | [1000](1000-template-standards-adrs-are-inherited.md) | Template standards ADRs are inherited, numbered 1000 and up | Accepted |
 | [1001](1001-project-conventions-is-the-canonical-standard.md) | project-conventions is the canonical provable-code standard | Accepted |
 | [1002](1002-provable-is-a-four-rung-ladder.md) | "Provable" means a four-rung ladder, and a project claims only the rungs CI enforces | Accepted |

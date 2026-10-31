@@ -2,13 +2,14 @@ import { parseBundle, serializeBundle } from "../core/bundle";
 import { parseBvConfig } from "../core/bvimport";
 import type { CycleEvent } from "../core/events";
 import { reduce } from "../core/reduce";
-import { minutesByCategory } from "../core/rollup";
+import { isPeriod, minutesByCategory } from "../core/rollup";
 import type { SelectionEntry } from "../core/select";
 import { selectOptions } from "../core/select";
 import { stepProgress } from "../core/steps";
 import type { Period } from "../core/rollup";
 import { dayKey, fromDayKey } from "../core/time";
 import type { BvStep, Cadence, ItemState, State } from "../core/types";
+import { CADENCE_KINDS, isCadenceKind } from "../core/types";
 import type { EventStore } from "../shell/storage";
 import { catColor, esc, fmtClock, fmtMin, isWebLink, safeHref } from "./format";
 import type { HistoryModel } from "./history";
@@ -189,7 +190,7 @@ export async function startApp(
         </form>`;
     }
     if (ui.cadenceItem === item.id) {
-      const opts = (["daily", "weekly", "monthly", "one-off"] as const)
+      const opts = CADENCE_KINDS
         .map(
           (k) =>
             `<option value="${k}"${k === item.cadence.kind ? " selected" : ""}>${k}</option>`
@@ -842,6 +843,8 @@ export async function startApp(
   }
 
   root.addEventListener("click", (e) => {
+    // cast (any-registry): listener on the app root: every target inside it is an element (text
+    // nodes don't receive clicks as targets); `closest` then null-checks the match.
     const target = (e.target as HTMLElement).closest<HTMLElement>("[data-action]");
     if (!target) return;
     const action = target.dataset["action"] ?? "";
@@ -1021,8 +1024,8 @@ export async function startApp(
         location.hash = "";
         break;
       case "hist-gran": {
-        const g = target.dataset["g"] as Period | undefined;
-        if (g !== undefined) {
+        const g = target.dataset["g"];
+        if (g !== undefined && isPeriod(g)) {
           ui.histPeriod = g;
           render();
         }
@@ -1034,6 +1037,9 @@ export async function startApp(
   });
 
   root.addEventListener("change", (e) => {
+    // cast (any-registry): `change` fires only on form controls, and every control under root is
+    // an <input> or <select> (no <textarea>); `dataset`, `id` and `value` exist on both, and
+    // `files` is read only after `id` has identified a file <input>.
     const input = e.target as HTMLInputElement;
     if (input.dataset["action"] === "pick-toggle") {
       const node = input.dataset["node"];
@@ -1066,6 +1072,7 @@ export async function startApp(
   });
 
   root.addEventListener("submit", (e) => {
+    // cast (any-registry): `submit` fires only on <form> elements.
     const form = e.target as HTMLFormElement;
     const kind = form.dataset["form"];
     if (kind === undefined) return;
@@ -1074,6 +1081,13 @@ export async function startApp(
     const str = (name: string): string => {
       const v = data.get(name);
       return typeof v === "string" ? v.trim() : "";
+    };
+    /** The form's cadence kind, or undefined (and an error shown) if it isn't one we know. */
+    const cadenceKind = (): Cadence["kind"] | undefined => {
+      const v = str("kind");
+      if (isCadenceKind(v)) return v;
+      say(`"${v}" isn't a cadence this app knows`, true);
+      return undefined;
     };
     const num = (name: string): number | undefined => {
       const v = Number(str(name));
@@ -1124,7 +1138,8 @@ export async function startApp(
     } else if (kind === "cadence") {
       const itemId = form.dataset["item"];
       if (itemId === undefined) return;
-      const cadKind = str("kind") as Cadence["kind"];
+      const cadKind = cadenceKind();
+      if (cadKind === undefined) return;
       const atTime = timeOf("time");
       const cadName = state.items[itemId]?.name ?? "that";
       closeForms();
@@ -1139,6 +1154,8 @@ export async function startApp(
       const name = str("name");
       const category = str("category");
       if (name === "" || category === "") return;
+      const addKind = cadenceKind();
+      if (addKind === undefined) return;
       const subCategory = str("subCategory") !== "" ? str("subCategory") : undefined;
       const atTime = timeOf("time");
       closeForms();
@@ -1151,7 +1168,7 @@ export async function startApp(
           name,
           category,
           cadence: {
-            kind: str("kind") as Cadence["kind"],
+            kind: addKind,
             ...(atTime !== undefined ? { atTime } : {}),
           },
           ...(subCategory !== undefined ? { subCategory } : {}),
@@ -1163,6 +1180,8 @@ export async function startApp(
       const name = str("name");
       const category = str("category");
       if (name === "" || category === "") return;
+      const pickKind = cadenceKind();
+      if (pickKind === undefined) return;
       const subCategory =
         str("subCategory") !== "" ? str("subCategory") : undefined;
       const atTime = timeOf("time");
@@ -1176,7 +1195,7 @@ export async function startApp(
           name,
           category,
           cadence: {
-            kind: str("kind") as Cadence["kind"],
+            kind: pickKind,
             ...(atTime !== undefined ? { atTime } : {}),
           },
           ...(subCategory !== undefined ? { subCategory } : {}),
@@ -1233,15 +1252,21 @@ export async function startApp(
   // History chart tooltips: enhance, never gate — the entries table below
   // carries the same values. Same content on keyboard focus as on hover.
   root.addEventListener("pointerover", (e) => {
+    // cast (any-registry): pointer events on elements under root target elements; `closest`
+    // null-checks the match.
     const col = (e.target as Element).closest(".col");
     if (col) showHistTip(col);
     else hideHistTip();
   });
   root.addEventListener("pointerout", (e) => {
+    // cast (any-registry): `relatedTarget` is an element or null for pointer events on this tree
+    // (never a non-element EventTarget); null is handled.
     const to = e.relatedTarget as Element | null;
     if (!to || !to.closest(".col")) hideHistTip();
   });
   root.addEventListener("focusin", (e) => {
+    // cast (any-registry): focus events target focusable elements; `closest` null-checks the
+    // match.
     const col = (e.target as Element).closest(".col");
     if (col) showHistTip(col);
   });

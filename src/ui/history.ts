@@ -1,5 +1,5 @@
 import type { Period, PeriodBucket } from "../core/rollup";
-import { minutesSeries, periodKey } from "../core/rollup";
+import { PERIODS, minutesSeries, periodKey } from "../core/rollup";
 import type { Weekday } from "../core/time";
 import { fromDayKey } from "../core/time";
 import type { LogEntryState, State } from "../core/types";
@@ -11,7 +11,6 @@ import { catColor, esc, fmtMin } from "./format";
  * entries table (the chart's non-color, non-hover twin). Everything here
  * builds strings from derived state; app.ts owns the DOM and events. */
 
-export const PERIODS: readonly Period[] = ["day", "week", "month", "year"];
 
 const NO_SUB = "(no sub-category)";
 

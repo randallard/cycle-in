@@ -87,10 +87,13 @@ and zero warnings ([ADR-1011](../../../docs/adr/1011-typescript-strictness-bar.m
 - **Pin `typescript` to 6.0.x** until the type-aware lint gate runs on TS 7: typescript-eslint
   supports 7.x, or an oxlint + tsgolint trial passes
   ([ADR-1010](../../../docs/adr/1010-typescript-stays-on-6-until-the-lint-gate-supports-7.md)).
-- **Opt-in extras**: an `any` registry (every `any`/`as` justified inline and listed in
-  `docs/any-registry.md`) and accessibility lint (axe checks, since this is a non-JSX UI). Not
-  baseline, but every project records an ADR saying yes or no
-  ([ADR-1012](../../../docs/adr/1012-strictness-extras-offered-at-project-start.md)).
+- **Opt-in extras** ([ADR-1012](../../../docs/adr/1012-strictness-extras-offered-at-project-start.md)):
+  cycle-in adopted both. **Every `any` and `as`** (other than `as const`) carries a
+  `// cast (any-registry): …` reason and a row in `docs/any-registry.md`; `pnpm casts` checks
+  both in CI ([ADR-0018](../../../docs/adr/0018-every-cast-is-registered.md)). A cast you can't
+  justify becomes a check instead, e.g. `isCadenceKind`. **axe** runs against every view in light
+  and dark (`pnpm e2e`, [ADR-0019](../../../docs/adr/0019-accessibility-checks-with-axe.md)); a
+  new view or form gets a test there.
 - **`fast-check` property tests on the pure core** — the `proptest` analogue. Write real
   invariants ("an item's next-due date is never before today," "rollup totals across categories
   always sum to the ungrouped total"), not smoke tests.

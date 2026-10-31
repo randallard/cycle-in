@@ -183,6 +183,9 @@ export function reduce(events: readonly CycleEvent[]): State {
       default: {
         // Statically unreachable for known kinds; a *runtime* event from a
         // newer app version lands here — preserved in the log, skipped here.
+        // cast (any-registry): statically unreachable (every known kind is handled, so `e` is
+        // never here); at runtime it's an event from a newer version, whose `kind` the bundle and
+        // store validated as a string.
         unknownKinds.add((e as { kind: string }).kind);
       }
     }
