@@ -39,12 +39,23 @@ blockExoticSubdeps: true
 overrides:
   postcss: "8.5.23" # GHSA-r28c-9q8g-f849 (path traversal) + GHSA-fxqj-rqcc-2cmp, published 2026-09-03
   tar: "7.5.21" # GHSA-r292-9mhp-454m (uncontrolled recursion DoS), published 2026-07-24
-  undici: "6.28.1" # GHSA-8xcm-r25x-g524 / GHSA-m8rv-5g2x-5cg5 / GHSA-v3r7-h72x-cjcm, then GHSA-rfgv-xxqx-mfg5 / GHSA-3wwx-pv8p-q78v / GHSA-r53p-7pc4-xj5r
+  undici: "6.29.1" # GHSA-8xcm-r25x-g524 / GHSA-m8rv-5g2x-5cg5 / GHSA-v3r7-h72x-cjcm, then GHSA-rfgv-xxqx-mfg5 / GHSA-3wwx-pv8p-q78v / GHSA-r53p-7pc4-xj5r, then (2026-10-31) GHSA-2m5v-pch6-74hx / GHSA-4qv8-2p9j-2685 / GHSA-9fm3-97px-rjf6 / GHSA-qrxm-fqhp-jwvm / GHSA-xjj6-f33q-929c
   "brace-expansion@5": "^5.0.12" # GHSA-mh99-v99m-4gvg, GHSA-rgw5-rvv9-x895, GHSA-6j4f-fj2g-mc7p, GHSA-qhr7-859c-m2p7, GHSA-q2hr-2g5m-vwhr
   "ip-address": "^10.7.1" # GHSA-mwp4-54f8-5fhr, GHSA-22jq-vg5j-6vgg, GHSA-4xrf-jv44-h6hh, GHSA-2vr4-cq9g-pvrc, GHSA-rpw4-54j3-4h4q, GHSA-h3mg-xc3c-68pw, GHSA-j6r3-76f7-8jcv
   "http-cache-semantics": "^4.2.1" # GHSA-ch52-4w7c-c8xp
   "source-map-js": "^1.2.2" # GHSA-68fv-2mgg-jv7q
   "postcss-selector-parser@7": "^7.1.6" # GHSA-rj75-hqrm-r3gf
+
+  # The two exceptions to the same-major rule above, deliberately (2026-10-31). Neither advisory
+  # has a fix on the line in the lockfile, only in a new major (both released 2026-10-27), and
+  # the consumers (eslint; license-checker's @npmcli internals) haven't moved yet. This repo has
+  # no minimatch 3 (the-lot and square-one do, and ignore minimatch instead for that reason), so
+  # the override reaches every copy. Measured with the jump in place: lint, tests, build, audit,
+  # signatures, the licence allowlist and OSV all pass. Upper-bounded so it can't drift a
+  # further major. Fallback if a consumer breaks: an ignore in both scanners (ADR-0015), never an
+  # unbounded range. Drop each once its consumers require it. Same as branching-video.
+  "glob@13": ">=14.0.2 <15" # GHSA-3g3m-2fjr-6pw4
+  "minimatch@10": ">=11.0.1 <12" # GHSA-g3hv-75wg-m249
   # nanoid needed no override of its own: postcss@8.5.23's own dependency
   # range already resolves it to 3.3.18, clearing GHSA-28wg-ghj8-5hjv and
   # GHSA-2v37-7h3g-55p8 as a side effect — confirmed via `pnpm why nanoid`,
