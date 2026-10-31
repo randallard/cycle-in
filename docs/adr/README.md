@@ -78,7 +78,7 @@ That's the valuable part, and it's exactly what an in-place edit destroys.
 | [0000](0000-record-architecture-decisions.md) | Record architecture decisions (use ADRs) | Accepted |
 | [0001](0001-provable-lite-strict-ts-and-property-tests-no-rust-core.md) | Provable-lite — strict TypeScript + property tests, no Rust/WASM core | Accepted |
 | [0002](0002-npm-supply-chain-discipline.md) | npm-ecosystem supply-chain discipline | Superseded by 0006–0013 |
-| [0003](0003-append-only-event-log-core.md) | Append-only event log core, calendar-period cadences, category-balanced selection | Accepted |
+| [0003](0003-append-only-event-log-core.md) | Append-only event log core, calendar-period cadences, category-balanced selection | Accepted; storage paragraph superseded by 0020 |
 | [0004](0004-branching-video-import-time-options-steps-check-ins.md) | Branching-video import — time-options, step sequences, and check-ins | Accepted; amended block → 0016, 0017 |
 | [0005](0005-interval-cadence-foreground-reminders-snooze.md) | Interval/session cadence, foreground reminders, and snooze (amends ADR-0003) | Proposed |
 | [0006](0006-block-install-time-scripts.md) | Block install-time script execution | Accepted |
@@ -95,6 +95,8 @@ That's the valuable part, and it's exactly what an in-place edit destroys.
 | [0017](0017-check-in-links-are-web-addresses-at-capture-and-render.md) | Check-in links must be web addresses, checked at capture and at render | Accepted |
 | [0018](0018-every-cast-is-registered.md) | Every `any` and type assertion is registered, with its reason, and CI checks it | Accepted |
 | [0019](0019-accessibility-checks-with-axe.md) | Accessibility is checked with axe against every view, in light and dark, in CI | Accepted |
+| [0020](0020-indexeddb-is-the-store-ahead-of-the-sync-decision.md) | IndexedDB is the event store now, ahead of the sync decision | Accepted |
+| [0021](0021-move-to-pnpm-12.md) | Move to pnpm 12, with the lockfile regenerated in its own change | Accepted |
 | [1000](1000-template-standards-adrs-are-inherited.md) | Template standards ADRs are inherited, numbered 1000 and up | Accepted |
 | [1001](1001-project-conventions-is-the-canonical-standard.md) | project-conventions is the canonical provable-code standard | Accepted |
 | [1002](1002-provable-is-a-four-rung-ladder.md) | "Provable" means a four-rung ladder, and a project claims only the rungs CI enforces | Accepted |
