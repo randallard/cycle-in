@@ -1,5 +1,5 @@
 # ADR-0008: Age-gate dependency admission at the package manager, not just the update bot
-- Status: Accepted
+- Status: Superseded by [ADR-0015](0015-one-day-age-gate.md)
 - Date: 2026-07-18
 - Deciders: Ryan
 

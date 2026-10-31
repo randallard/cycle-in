@@ -1,8 +1,12 @@
 # Progress & Status
 
-_Last updated: 2026-07-18_
+_Last updated: 2026-10-14_
 
 ## Status / next
+
+**Standards:** last compliance review 2026-10-31: sound core and supply-chain gates, but behind the template: 9 gaps, most urgently PR #2 emptying `renovate.json` ([note](compliance/2026-10-31.md))
+
+**2026-10-14 — age gate 1 day (ADR-0015) and 20 advisories cleared, in a PR.** Overrides + `vitest` 4.1.11; the expired dated ignores and `osv-scanner.toml` removed. Still owed: `DEPLOY_PAGES` repo variable, Renovate install. See [journal](journal/2026-10-14-age-gate-one-day-and-twenty-advisories.md).
 
 **Now (2026-07-18) — a working app, not a stub, and now driven end to end in a browser.** The
 board (direction B "balance board"), the `#history` view, the IndexedDB event store, and
@@ -364,6 +368,19 @@ Found by re-walking the described flow against the docs and the then-current
   this becomes UI (a cost preview on add-item), a config-level goal model, or stays a manual
   judgment call is unresolved — revisit when the add-item flow or item-source interface next
   gets real design attention.
+  - **2026-09-19: sharpened with actual habit-formation research**, not just intuition — see
+    [`journal/2026-09-19-1-sustainable-pacing-research-onboarding-and-restart.md`](journal/2026-09-19-1-sustainable-pacing-research-onboarding-and-restart.md).
+    No fixed onboarding-pace rule is evidence-backed (the real range across studies is
+    18–254 days to form a habit, highly individual) — a systematic review of simultaneous vs.
+    sequential habit-building found no consistent winner either way, which argues *for* the
+    observability-first approach already implicit in the balance board/history views rather
+    than against it. Two new, still-undesigned surfaces this points at: (a) new items starting
+    small (minutes, not the category's full ambition) plausibly matters more than how many get
+    added at once; (b) **nothing today models "time away"** — a gap after a real disruption
+    (e.g. vacation) shouldn't read as a broken streak needing to "catch up," per both Lally's
+    finding that single lapses don't erase habit progress and the "fresh start effect"
+    literature on returning after a break being a *good* re-engagement moment. Relevant
+    whenever the interval/snooze work (ADR-0005, Phase 2) gets real design attention.
 - **No behavioural risk-heuristic tool wired in** (was ADR-0002 decision 9; recorded here rather
   than as an ADR, because "we haven't done this yet" is a gap, not a decision). Socket.dev or
   equivalent analyses what a *new* package version does — new network calls, filesystem access,
