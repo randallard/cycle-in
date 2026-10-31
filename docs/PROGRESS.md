@@ -6,7 +6,9 @@ _Last updated: 2026-10-31_
 
 **Standards:** last compliance review 2026-10-31 ([note](compliance/2026-10-31.md)): 9 gaps, all addressed the same day across PRs #2, #3 and the gaps-5–9 PR (ADRs 0016–0019, inherited 1000–1017, a first [stance review](reviews/2026-10-31-stance-review.md)).
 
-**2026-10-31 (later) — gaps 5–9 done** on `compliance-gaps-5-9`, stacked on #3: ADRs 0016/0017 record ADR-0004's amended block; Rust jobs deleted; template ADRs 1000–1017 and current skills inherited; first stance review; and Ryan's ADR-1012 answers, both yes: a CI-checked cast registry (ADR-0018; four unjustifiable casts became `isCadenceKind`/`isPeriod` guards) and axe in light and dark (ADR-0019; fixed `--ink-3` contrast in both themes). **Next:** merge #2 → #3 → the gaps PR; decide the stance review's two proposed ADRs (IndexedDB ahead of sync; pnpm 12); then `DEPLOY_PAGES`, Renovate, Phase 2. See [journal](journal/2026-10-31-2-compliance-gaps-5-to-9.md).
+**2026-10-31 — correction: `DEPLOY_PAGES` was never owed.** It has been set since 2026-09-18 (`gh variable list`), and the site deploys from CI: the 10-31 merge redeployed https://randallard.github.io/cycle-in/ with the same asset hashes as a local build. The "still owed" lines below carried a stale note forward. #2, #3 and #4 are merged (`c3341a2`); CI on `main` is green. **Next:** Ryan decides the stance review's two proposed ADRs (IndexedDB ahead of the sync decision; pnpm 12); install the Renovate app (config valid); then Phase 2 (ADR-0005). See [journal](journal/2026-10-31-3-deploy-pages-was-never-owed.md).
+
+**2026-10-31 (later) — gaps 5–9 done** on `compliance-gaps-5-9`, stacked on #3: ADRs 0016/0017 record ADR-0004's amended block; Rust jobs deleted; template ADRs 1000–1017 and current skills inherited; first stance review; and Ryan's ADR-1012 answers, both yes: a CI-checked cast registry (ADR-0018; four unjustifiable casts became `isCadenceKind`/`isPeriod` guards) and axe in light and dark (ADR-0019; fixed `--ink-3` contrast in both themes). **Next:** merge #2 → #3 → the gaps PR; decide the stance review's two proposed ADRs (IndexedDB ahead of sync; pnpm 12); then install Renovate, then Phase 2. See [journal](journal/2026-10-31-2-compliance-gaps-5-to-9.md).
 
 **2026-10-31 — first compliance review; gaps 1–4 fixed in PRs.** #2 now restores the `renovate.json` its own commit had emptied, and clears 14 advisories published since 10-14 (vite, vitest, undici, and bounded cross-major overrides for glob/minimatch); green. Stacked on it: timeouts on every CI job, Node 24, and a gitleaks secret scan. **Next:** merge #2, then the CI PR; then review gaps 5–8 (ADR-0004's amended block, the ADR-1012 questions, the inherited ADRs and skill, a first stance review), then `DEPLOY_PAGES`, Renovate, Phase 2. See [journal](journal/2026-10-31-compliance-review-and-first-four-gaps.md).
 
@@ -84,6 +86,8 @@ deployed unconditionally. Confirmed via `gh variable list` that it isn't set —
 stops deploying on the next push to `main` until `gh variable set DEPLOY_PAGES --body true -R
 randallard/cycle-in` is run.** Deliberately left for Ryan rather than set silently, since it's a
 live GitHub setting change, not a file. `python3 scripts/docs-hygiene.py` runs clean locally.
+**Resolved the same day:** `gh variable list` shows `DEPLOY_PAGES=true` set 2026-09-18 18:54 UTC,
+and the site has deployed from CI since; this note just wasn't updated (found 2026-10-31).
 
 **Status (2026-07-08, scaffolding era — superseded by the entries below):** Repo scaffolded,
 pushed, and **confirmed live**: https://randallard.github.io/cycle-in/
