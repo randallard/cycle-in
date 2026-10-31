@@ -1,10 +1,12 @@
 # Progress & Status
 
-_Last updated: 2026-10-14_
+_Last updated: 2026-10-31_
 
 ## Status / next
 
-**Standards:** last compliance review 2026-10-31: sound core and supply-chain gates, but behind the template: 9 gaps, most urgently PR #2 emptying `renovate.json` ([note](compliance/2026-10-31.md))
+**Standards:** last compliance review 2026-10-31: sound core and supply-chain gates, but behind the template: 9 gaps, most urgently PR #2 emptying `renovate.json` ([note](compliance/2026-10-31.md)). Gaps 1–4 fixed the same day, in PR #2 and the CI PR stacked on it; 5–9 open
+
+**2026-10-31 — first compliance review; gaps 1–4 fixed in PRs.** #2 now restores the `renovate.json` its own commit had emptied, and clears 14 advisories published since 10-14 (vite, vitest, undici, and bounded cross-major overrides for glob/minimatch); green. Stacked on it: timeouts on every CI job, Node 24, and a gitleaks secret scan. **Next:** merge #2, then the CI PR; then review gaps 5–8 (ADR-0004's amended block, the ADR-1012 questions, the inherited ADRs and skill, a first stance review), then `DEPLOY_PAGES`, Renovate, Phase 2. See [journal](journal/2026-10-31-compliance-review-and-first-four-gaps.md).
 
 **2026-10-14 — age gate 1 day (ADR-0015) and 20 advisories cleared, in a PR.** Overrides + `vitest` 4.1.11; the expired dated ignores and `osv-scanner.toml` removed. Still owed: `DEPLOY_PAGES` repo variable, Renovate install. See [journal](journal/2026-10-14-age-gate-one-day-and-twenty-advisories.md).
 
