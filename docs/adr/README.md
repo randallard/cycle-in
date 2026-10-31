@@ -74,7 +74,7 @@ That's the valuable part, and it's exactly what an in-place edit destroys.
 | [0001](0001-provable-lite-strict-ts-and-property-tests-no-rust-core.md) | Provable-lite — strict TypeScript + property tests, no Rust/WASM core | Accepted |
 | [0002](0002-npm-supply-chain-discipline.md) | npm-ecosystem supply-chain discipline | Superseded by 0006–0013 |
 | [0003](0003-append-only-event-log-core.md) | Append-only event log core, calendar-period cadences, category-balanced selection | Accepted |
-| [0004](0004-branching-video-import-time-options-steps-check-ins.md) | Branching-video import — time-options, step sequences, and check-ins | Accepted |
+| [0004](0004-branching-video-import-time-options-steps-check-ins.md) | Branching-video import — time-options, step sequences, and check-ins | Accepted; amended block → 0016, 0017 |
 | [0005](0005-interval-cadence-foreground-reminders-snooze.md) | Interval/session cadence, foreground reminders, and snooze (amends ADR-0003) | Proposed |
 | [0006](0006-block-install-time-scripts.md) | Block install-time script execution | Accepted |
 | [0007](0007-pin-exact-versions-restrict-registry.md) | Pin exact versions and restrict the registry | Accepted |
@@ -86,3 +86,5 @@ That's the valuable part, and it's exactly what an in-place edit destroys.
 | [0013](0013-pin-actions-to-commit-shas.md) | Pin third-party GitHub Actions to full commit SHAs | Accepted |
 | [0014](0014-dual-license-mit-or-apache-2-0.md) | Dual-license MIT OR Apache-2.0, replacing MIT-only | Accepted |
 | [0015](0015-one-day-age-gate.md) | The age gate is one day, not fourteen | Accepted |
+| [0016](0016-an-import-with-no-steps-keeps-its-video-provenance.md) | A branching-video import with no steps chosen still records where it came from | Accepted |
+| [0017](0017-check-in-links-are-web-addresses-at-capture-and-render.md) | Check-in links must be web addresses, checked at capture and at render | Accepted |
