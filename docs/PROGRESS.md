@@ -4,6 +4,8 @@ _Last updated: 2026-10-14_
 
 ## Status / next
 
+**Standards:** last compliance review 2026-10-31: sound core and supply-chain gates, but behind the template: 9 gaps, most urgently PR #2 emptying `renovate.json` ([note](compliance/2026-10-31.md))
+
 **2026-10-14 — age gate 1 day (ADR-0015) and 20 advisories cleared, in a PR.** Overrides + `vitest` 4.1.11; the expired dated ignores and `osv-scanner.toml` removed. Still owed: `DEPLOY_PAGES` repo variable, Renovate install. See [journal](journal/2026-10-14-age-gate-one-day-and-twenty-advisories.md).
 
 **Now (2026-07-18) — a working app, not a stub, and now driven end to end in a browser.** The
