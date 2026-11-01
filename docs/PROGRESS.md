@@ -4,7 +4,7 @@ _Last updated: 2026-10-31_
 
 ## Status / next
 
-**Standards:** last compliance review 2026-10-31 ([note](compliance/2026-10-31.md)): 9 gaps, all addressed the same day across PRs #2, #3 and the gaps-5–9 PR (ADRs 0016–0019, inherited 1000–1017, a first [stance review](reviews/2026-10-31-stance-review.md)).
+**Standards:** last compliance review 2026-11-01: compliant apart from currency, 2 gaps (ADRs 1018/1019 and their skill text not inherited; ADR-0004's Status doesn't point at 0016/0017) ([note](compliance/2026-11-01.md))
 
 **2026-10-31 (pnpm 12) — ADR-0021 carried out** on `pnpm-12`: pnpm 12.17.0, lockfile regenerated with no dependency changes. **OSV moved to v2.7.0 in the same change**: v2.3.8 reads only the first of pnpm 12's two lockfile documents (16 packages, not 307) and would have passed while scanning nothing of ours. **Next:** merge, confirm `main`'s OSV job reports ~307 packages; install the Renovate app; Phase 2 (ADR-0005). The template should take OSV v2.7.0 before any project moves to pnpm 12. See [journal](journal/2026-10-31-5-pnpm-12-and-the-scanner-that-read-half-a-lockfile.md).
 
