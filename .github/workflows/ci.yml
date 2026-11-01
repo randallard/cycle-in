@@ -65,7 +65,7 @@ jobs:
       - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
-          node-version: 26 # ADR-1020: the Active LTS; the engines floor stays 24
+          node-version: 26 # ADR-1022: the Active LTS, and the engines floor too
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
@@ -91,7 +91,7 @@ jobs:
       - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
-          node-version: 26 # ADR-1020: the Active LTS; the engines floor stays 24
+          node-version: 26 # ADR-1022: the Active LTS, and the engines floor too
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: known-vulnerability audit
@@ -121,7 +121,7 @@ jobs:
       - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
-          node-version: 26 # ADR-1020: the Active LTS; the engines floor stays 24
+          node-version: 26 # ADR-1022: the Active LTS, and the engines floor too
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       # An explicit, version-pinned download from Playwright's CDN — nothing is fetched at install
