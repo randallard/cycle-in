@@ -13,9 +13,20 @@
       "enabled": false
     },
     {
-      "description": "ADR-1020: @types/node describes the engines floor (Node 24), not CI's Node 26, so code can't use a 26-only API by accident. Move with the floor.",
+      "description": "ADR-1010: TypeScript stays on 6.0.x until the type-aware lint gate supports 7. Lift this rule when either of ADR-1010's exit triggers is met.",
+      "matchPackageNames": ["typescript"],
+      "allowedVersions": "6.0.x"
+    },
+    {
+      "description": "ADR-1022: @types/node describes the engines floor and CI, both Node 26. Move all three together, by hand.",
       "matchPackageNames": ["@types/node"],
-      "allowedVersions": "24.x"
+      "allowedVersions": "26.x"
+    },
+    {
+      "description": "ADR-1022: CI's node-version is the LTS line (26), not a patch. setup-node resolves it to the latest 26.x on every run, which is how security patches arrive, so a pin would only freeze them. 'replace' still proposes the next major.",
+      "matchManagers": ["github-actions"],
+      "matchDepNames": ["node"],
+      "rangeStrategy": "replace"
     }
   ]
 }
