@@ -1,10 +1,12 @@
 # Progress & Status
 
-_Last updated: 2026-10-31_
+_Last updated: 2026-11-01_
 
 ## Status / next
 
-**Standards:** last compliance review 2026-11-01: compliant apart from currency, 2 gaps (ADRs 1018/1019 and their skill text not inherited; ADR-0004's Status doesn't point at 0016/0017) ([note](compliance/2026-11-01.md))
+**Standards:** last compliance review 2026-11-01: compliant apart from currency, 1 gap, fixed on `compliance-2026-11-01` (ADRs 1018/1019 and their skill text inherited); a second, ADR-0004's Status, withdrawn: the repo's partial-supersession convention already covers it ([note](compliance/2026-11-01.md))
+
+**2026-11-01 — second compliance review, and its gaps** on `compliance-2026-11-01`: all nine 10-31 gaps confirmed fixed; `main`'s OSV job read 307 packages, which answers the check below. ADRs 1018 and 1019 and the template's `stance-review` inherited byte-identical; the tailored `project-conventions` gains the ADR-1018 citation and the "HTTP APIs" section (`9586dbd`). The note's other gap, pointing ADR-0004's Status at 0016/0017, was withdrawn: docs-hygiene's status grammar has no partial form, and the convention (as ADR-0020 does for 0003) keeps Status Accepted with the pointer in the index row and the superseding ADRs, which 0016/0017 already have. **Next:** merge this PR; install the Renovate app; Phase 2 (ADR-0005). See [journal](journal/2026-11-01-1-second-compliance-review.md).
 
 **2026-10-31 (pnpm 12) — ADR-0021 carried out** on `pnpm-12`: pnpm 12.17.0, lockfile regenerated with no dependency changes. **OSV moved to v2.7.0 in the same change**: v2.3.8 reads only the first of pnpm 12's two lockfile documents (16 packages, not 307) and would have passed while scanning nothing of ours. **Next:** merge, confirm `main`'s OSV job reports ~307 packages; install the Renovate app; Phase 2 (ADR-0005). The template should take OSV v2.7.0 before any project moves to pnpm 12. See [journal](journal/2026-10-31-5-pnpm-12-and-the-scanner-that-read-half-a-lockfile.md).
 
