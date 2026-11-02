@@ -6,7 +6,7 @@ _Last updated: 2026-11-01_
 
 **Standards:** last compliance review 2026-11-01: compliant apart from currency, 1 gap, fixed on `compliance-2026-11-01` (ADRs 1018/1019 and their skill text inherited); a second, ADR-0004's Status, withdrawn: the repo's partial-supersession convention already covers it ([note](compliance/2026-11-01.md))
 
-**2026-11-01 (3): ADR-1022 from the template, Node 26 as the floor** ([journal](journal/2026-11-01-3-adr-1022-node-26-floor.md)). `engines` `>=26.0.0`, `@types/node` 26.6.6. Local gates pass. On branch `adr-1022-node-26`. **Next:** read CI (its e2e is the first run on this), merge.
+**2026-11-01 (3): ADR-1022 from the template, Node 26 as the floor** ([journal](journal/2026-11-01-3-adr-1022-node-26-floor.md)). `engines` `>=26.0.0`, `@types/node` 26.6.6. Local gates pass. Merged as #10 (`a9d29e6`), CI green on `main` with e2e passing.
 
 **2026-11-01 (2) — ADR-1020 from the template** on `adr-1020-node-26`: CI on Node 26, `engines` and `@types/node` stay 24 (Renovate rule), ADR-1013 superseded; no code change. **Next:** merge; install the Renovate app; Phase 2 (ADR-0005). See [journal](journal/2026-11-01-2-adr-1020-node-26-in-ci.md).
 
