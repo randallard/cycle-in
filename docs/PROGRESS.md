@@ -1,10 +1,12 @@
 # Progress & Status
 
-_Last updated: 2026-11-21_
+_Last updated: 2026-11-22_
 
 ## Status / next
 
 **Standards:** last compliance review 2026-11-01: compliant apart from currency, 1 gap, fixed on `compliance-2026-11-01` (ADRs 1018/1019 and their skill text inherited); a second, ADR-0004's Status, withdrawn: the repo's partial-supersession convention already covers it ([note](compliance/2026-11-01.md))
+
+**2026-11-22 (1): ADR-1024 from the template** ([journal](journal/2026-11-22-1-adr-1024-explicit-deny-toml.md)): an explicit `deny.toml` with `unmaintained = "all"`. The ADR is copied. No `deny.toml` here, because there's no Rust and no cargo-deny job. **Next:** as in the line below.
 
 **2026-11-21 (2): ADR-1023 from the template, routine Renovate updates merge themselves** ([journal](journal/2026-11-21-2-adr-1023-renovate-automerge.md)). Minor and patch updates of 1.0+ packages, plus digest, pin and lockfile updates, merge once CI passes. Majors and 0.x minors stay manual. Branch protection is on `main` now (8 required checks, matching branching-video). **Next:** confirm the first automerge (the lockfile PR, after its age gate clears); the remaining items are in the line below.
 
