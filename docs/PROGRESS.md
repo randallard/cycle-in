@@ -1,10 +1,14 @@
 # Progress & Status
 
-_Last updated: 2026-11-01_
+_Last updated: 2026-11-21_
 
 ## Status / next
 
 **Standards:** last compliance review 2026-11-01: compliant apart from currency, 1 gap, fixed on `compliance-2026-11-01` (ADRs 1018/1019 and their skill text inherited); a second, ADR-0004's Status, withdrawn: the repo's partial-supersession convention already covers it ([note](compliance/2026-11-01.md))
+
+**2026-11-21 (2): ADR-1023 from the template, routine Renovate updates merge themselves** ([journal](journal/2026-11-21-2-adr-1023-renovate-automerge.md)). Minor and patch updates of 1.0+ packages, plus digest, pin and lockfile updates, merge once CI passes. Majors and 0.x minors stay manual. Branch protection is on `main` now (8 required checks, matching branching-video). **Next:** confirm the first automerge (the lockfile PR, after its age gate clears); the remaining items are in the line below.
+
+**2026-11-21 — Renovate backlog cleared** ([journal](journal/2026-11-21-1-renovate-backlog-cleared.md)). 14 PRs merged incl. vitest 5 and setup-node v7; `main` green. **Renovate is installed** (the old "install the Renovate app" item is done). #25's red CI was a withdrawn picomatch advisory. **Next:** merge #30 (lockfile) once the age gate clears; fix `SETUP.md`'s stale Node/pnpm versions; user guide + glossary; the cello epic (looping section as a task; check-ins as link, note, or just a time) once Ryan confirms the stories; Phase 2 (ADR-0005).
 
 **2026-11-01 (3): ADR-1022 from the template, Node 26 as the floor** ([journal](journal/2026-11-01-3-adr-1022-node-26-floor.md)). `engines` `>=26.0.0`, `@types/node` 26.6.6. Local gates pass. Merged as #10 (`a9d29e6`), CI green on `main` with e2e passing.
 
