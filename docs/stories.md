@@ -113,8 +113,10 @@ time-options serve each one, so I can tell whether a concern is being covered.*
   - It's all stored as events (`concern-added`, a link to a concern, and so on), so it syncs and
     merges like everything else.
   - **Linking back from a repo or show** (a repo doc or a show pointing at its concern in cycle-in)
-    needs a stable concern id in a URL. That URL contract is part of this story. Making other repos
-    *use* it is their own work.
+    needs a stable concern id in a URL. That URL contract is part of this story. The link always
+    points at **the reader's own cycle-in**, with a reference to the original where there is one
+    (Ryan, 2026-11-22: *"the linking between repos would only be to their own user's cycle-in web,
+    with maybe a reference to the original"*). Making other repos *use* it is Epic D.
 
 ### B3. Due dates on one-off time-options: Accepted 2026-11-22
 *As someone with things that must happen by a date, I want a one-off time-option to have a due date,
@@ -137,3 +139,79 @@ exist.*
 - Each skill becomes a not-started time-option (B1), and each deadline a one-off with its due date
   (B3). That's done through the existing import, which merges events, or by hand.
 - Each item moved is struck in `personal-backlog/PROGRESS.md` with a pointer here.
+
+## Epic D: concern repos people can read, fork and take on as their own
+Ryan, 2026-11-22: *"I do want doc repos to contain tasks and shows … the story is for people to be able
+to take a look or for me to review the docs I have on a concern or goal and see tasks and branching
+videos I have from that repo, then be able to, as a different user, fork it and take it on as my own,
+incorporating the tasks into my cycle-in"*. And: *"maybe that means it should be a template, and there
+should be an easy way to copy tasks, goals, and whatnot from other people's shared repos"*.
+
+A **concern repo** holds one concern's (or goal's) research docs, its tasks, and its branching-video
+shows (B2's "repos contain docs, tasks and branching videos").
+
+**The one design point these stories share:** what a concern repo shares is a **recipe**, the concern
+plus its task seeds (name, category, cadence, show links), *not* a cycle-in event bundle. A bundle
+(`core/bundle.ts`) carries its owner's whole history, and importing it unions someone else's event
+ids into your log. Adopting a recipe instead mints new ids in *your* cycle-in and records where each
+piece came from.
+
+### D1. A template for concern repos: Accepted 2026-11-22
+*As someone starting on a concern, I want a template repo that already has a place for docs, a task
+recipe and shows, so mine is shareable from the start.*
+- A GitHub template repo: `docs/` (the research), a recipe file (concern plus task seeds, versioned
+  like the bundle format: `format`, `version`), and a `shows/` directory of branching-video
+  `config.json` files.
+- The recipe validates in CI against cycle-in's seed rules (cadence kinds, categories), so a broken
+  recipe can't be merged.
+- It holds docs, a recipe and shows, and never progress: no export bundles, no logs (D5's rule).
+- One setting says *whose* cycle-in it links to (D4). A fresh copy has none set, so its links offer
+  to use the reader's own.
+
+### D2. Read a concern repo: Accepted 2026-11-22
+*As Ryan reviewing a concern, or anyone looking at it, I want its docs, tasks and shows on one page.*
+- The repo publishes a page (GitHub Pages) that shows the docs and lists the recipe's tasks, each
+  with its cadence and category, and the shows, each with a **play** link.
+- Each task and show has an **add to my cycle-in** link (D3).
+
+### D3. Take a concern on as my own: Accepted 2026-11-22
+*As a different user, I want to fork someone's concern repo, or just copy from it, and bring its
+concern and tasks into my cycle-in.*
+- From a concern repo's page, or a recipe URL pasted into cycle-in, cycle-in shows what will be
+  added: the concern, each task, each show. Then it adds the ones I pick.
+- Everything added gets **new ids in my log**. The concern records its source (the recipe URL, and
+  the original repo when the source is a fork).
+- Adding the same recipe again doesn't duplicate anything. It offers only what's new or changed.
+- No one else's history comes with it. Only recipe content is added.
+- It works the same whether I forked the repo or only read it.
+
+### D4. Links go to the reader's own cycle-in: Accepted 2026-11-22
+*As a forker, I want my copy's links to go to my cycle-in, with credit to where it came from.*
+- A concern repo's links (B2's link back, D2's "add to my cycle-in") point at the cycle-in URL set in
+  that repo's setting (D1). With none set, they ask the reader for theirs.
+- A fork keeps an "originally from <repo>" reference, and never links into the original owner's
+  cycle-in.
+
+### D5. Forking cycle-in starts clean: Accepted 2026-11-22
+*As a new user, I want my own cycle-in by forking Ryan's, starting with none of his progress, and still
+able to pull his later fixes.*
+
+Ryan, 2026-11-22: *"keep fork as an option too - I think the fork should be the default - maybe we
+don't need the template option … we do need a way for users to fork without the other user's
+progress"*. Fork is the route, and a template isn't needed. That's because **progress is never in
+the repo**: it lives in each user's browser (IndexedDB, `shell/storage.ts`), and a fork's Pages site
+is its own origin (`<user>.github.io`), so its storage is separate even on the same device. The only
+personal choices in the repo are the defaults in `core/config.ts`.
+
+- `docs/SETUP.md` starts from **Fork**, and says how to pull upstream fixes later (GitHub's "Sync
+  fork"). Its Node and pnpm versions match the repo (today it says 22.13 and 11.5.3, where the repo
+  needs 26 and 12).
+- A fork deploys to its own Pages, and changes only `core/config.ts` and the steps `SETUP.md` lists.
+  It opens empty.
+- **CI keeps progress out of the repo:** a committed file in the export format
+  (`"format": "cycle-in-events"`) fails the build, apart from test fixtures under `src/`.
+- The same rule holds for concern repos (D1): they hold docs, recipes and shows, and **never
+  progress**. A fork of a concern repo brings the owner's research and tasks, not their history.
+
+**Order:** D5 can go any time, since it's mostly docs and one CI check. D1 → D2 → D3 → D4 come after B2 (concerns
+exist in cycle-in) and B1 (not-started tasks).
